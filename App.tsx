@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { APP_NAME, WHATSAPP_NUMBER } from './constants';
 import { Product, CartItem, Category } from './types';
-import { loadProductsFromStorage, saveProductsToStorage, resetDatabase } from './services/storageService';
+import { loadProductsFromStorage, saveProductToStorage, deleteProductFromStorage, resetDatabase } from './services/storageService';
+import { isCloudActive } from './services/firebase';
 import ProductCard from './components/ProductCard';
 import AdminPanel from './components/AdminPanel';
 import GeminiAssistant from './components/GeminiAssistant';
-import { ShoppingCart, Moon, Search, Menu, X, Phone, LogOut, Beer, Plus, Minus, Trash2, Lock, User, ArrowRight, Upload, Image as ImageIcon, CreditCard, RefreshCw } from 'lucide-react';
+import { ShoppingCart, Moon, Search, Menu, X, Phone, LogOut, Beer, Plus, Minus, Trash2, Lock, User, ArrowRight, Upload, Image as ImageIcon, CreditCard, RefreshCw, Cloud, CloudOff } from 'lucide-react';
 
 // --- Login/Welcome Screen Component ---
 const WelcomeScreen = ({ onLogin, onAdminLogin }: { onLogin: (name: string) => void, onAdminLogin: () => void }) => {
@@ -151,11 +152,15 @@ const App: React.FC = () => {
   const [voucherPreview, setVoucherPreview] = useState<string | null>(null);
 
   // --- Persistence Logic ---
-  useEffect(() => {
-    // Load products from "Database" (Storage)
-    const loaded = loadProductsFromStorage();
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    const loaded = await loadProductsFromStorage();
     setProducts(loaded);
     setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchProducts();
   }, []);
 
   // --- Cart Logic ---
@@ -213,22 +218,15 @@ const App: React.FC = () => {
   };
 
   // --- Admin Logic ---
-  const handleSaveProduct = (product: Product) => {
-    const updatedProducts = products.map(p => p.id === product.id ? product : p);
-    // If it's a new product (not in array), add it
-    if (!products.find(p => p.id === product.id)) {
-      updatedProducts.push(product);
-    }
-    
-    setProducts(updatedProducts);
-    saveProductsToStorage(updatedProducts); // SAVE TO DB
+  const handleSaveProduct = async (product: Product) => {
+    await saveProductToStorage(product);
+    await fetchProducts(); // Refresh list
   };
 
-  const handleDeleteProduct = (id: string) => {
+  const handleDeleteProduct = async (id: string) => {
     if (window.confirm('¿Estás seguro de eliminar este producto de la base de datos?')) {
-      const updatedProducts = products.filter(p => p.id !== id);
-      setProducts(updatedProducts);
-      saveProductsToStorage(updatedProducts); // SAVE TO DB
+      await deleteProductFromStorage(id);
+      await fetchProducts(); // Refresh list
     }
   };
 
@@ -263,7 +261,12 @@ const App: React.FC = () => {
   }
 
   if (isLoading) {
-    return <div className="min-h-screen bg-black flex items-center justify-center text-neon-green">Cargando base de datos...</div>;
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-neon-green gap-4">
+        <div className="w-16 h-16 border-4 border-neon-green border-t-transparent rounded-full animate-spin"></div>
+        <p className="font-bold tracking-widest animate-pulse">CARGANDO BASE DE DATOS...</p>
+      </div>
+    );
   }
 
   return (
@@ -372,25 +375,37 @@ const App: React.FC = () => {
 
       {/* Admin Quick Actions Bar */}
       {user.isMaster && (
-        <div className="bg-black/60 border-b border-neon-purple/30 py-3 px-4 sticky top-[80px] z-20 shadow-[0_4px_20px_rgba(0,0,0,0.5)] backdrop-blur-md">
-          <div className="container mx-auto flex justify-between items-center">
-            <span className="text-neon-purple font-bold text-xs md:text-sm uppercase tracking-wider flex items-center gap-2 drop-shadow-sm">
-              <Lock size={14} /> Modo Master (Base de Datos Activa)
-            </span>
-            <div className="flex gap-2">
+        <div className={`py-3 px-4 sticky top-[80px] z-20 shadow-[0_4px_20px_rgba(0,0,0,0.5)] backdrop-blur-md transition-colors ${isCloudActive ? 'bg-black/60 border-b border-neon-purple/30' : 'bg-orange-900/20 border-b border-orange-500/30'}`}>
+          <div className="container mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
+            <div className="flex items-center gap-3">
+              <span className="text-neon-purple font-bold text-xs md:text-sm uppercase tracking-wider flex items-center gap-2 drop-shadow-sm">
+                <Lock size={14} /> Modo Master
+              </span>
+              {isCloudActive ? (
+                <span className="flex items-center gap-1 text-[10px] text-neon-green bg-green-900/30 px-2 py-1 rounded border border-green-500/30">
+                  <Cloud size={10} /> Conectado a Google Cloud
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-[10px] text-orange-400 bg-orange-900/30 px-2 py-1 rounded border border-orange-500/30">
+                  <CloudOff size={10} /> Modo Local (Configura Firebase)
+                </span>
+              )}
+            </div>
+            
+            <div className="flex gap-2 w-full md:w-auto">
               <button
                 onClick={handleResetDb}
-                className="bg-red-900/30 hover:bg-red-900/50 text-red-300 border border-red-500/30 font-bold py-2 px-3 rounded-lg flex items-center gap-2 text-xs transition-all"
+                className="bg-red-900/30 hover:bg-red-900/50 text-red-300 border border-red-500/30 font-bold py-2 px-3 rounded-lg flex items-center gap-2 text-xs transition-all whitespace-nowrap"
                 title="Restaurar productos originales"
               >
-                <RefreshCw size={14} /> Reset DB
+                <RefreshCw size={14} /> Reset
               </button>
               <button 
                 onClick={() => {
                   setEditingProduct(null);
                   setShowAdminPanel(true);
                 }}
-                className="bg-neon-green hover:bg-green-400 text-black font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-xs md:text-sm transition-all shadow-[0_0_15px_rgba(57,255,20,0.3)] hover:shadow-[0_0_25px_rgba(57,255,20,0.5)] hover:scale-105"
+                className="flex-1 md:flex-none bg-neon-green hover:bg-green-400 text-black font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 text-xs md:text-sm transition-all shadow-[0_0_15px_rgba(57,255,20,0.3)] hover:shadow-[0_0_25px_rgba(57,255,20,0.5)] hover:scale-105"
               >
                 <Plus size={16} /> Agregar Producto
               </button>
