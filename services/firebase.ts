@@ -1,47 +1,43 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
 
+// Credenciales proporcionadas por el usuario
+const firebaseConfig = {
+  apiKey: "AIzaSyCXCP7OevTv8pqRB7oq-cUfpg0rQA3uLKE",
+  authDomain: "salvandolanoche-38489.firebaseapp.com",
+  projectId: "salvandolanoche-38489",
+  storageBucket: "salvandolanoche-38489.firebasestorage.app",
+  messagingSenderId: "359054137058",
+  appId: "1:359054137058:web:88f2ad95c012ff5a7af0bb"
+};
+
 let db: Firestore | null = null;
 let isCloudActive = false;
 
-// Intentamos cargar la configuración guardada por el usuario en el navegador
-const loadFirebaseConfig = () => {
+const initFirebase = () => {
   try {
-    const savedConfig = localStorage.getItem('sln_firebase_config');
-    if (savedConfig) {
-      const config = JSON.parse(savedConfig);
-      if (!getApps().length) {
-        const app = initializeApp(config);
-        db = getFirestore(app);
-      } else {
-        const app = getApp();
-        db = getFirestore(app);
-      }
-      isCloudActive = true;
-      console.log("✅ Conectado a la Nube de Google (Firebase) dinámicamente");
-    }
+    // Si ya hay apps inicializadas, usar la existente, si no, inicializar
+    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    db = getFirestore(app);
+    isCloudActive = true;
+    console.log("✅ Conectado a la Nube de Google (Firebase) Automáticamente");
   } catch (error) {
-    console.error("Error iniciando Firebase con config guardada:", error);
+    console.error("Error iniciando Firebase:", error);
     isCloudActive = false;
   }
 };
 
-// Cargar al inicio
-loadFirebaseConfig();
+// Iniciar inmediatamente
+initFirebase();
 
+// Mantenemos estas funciones por compatibilidad con la UI, aunque ya no sean estrictamente necesarias
 export const saveFirebaseConfig = (configStr: string) => {
-  try {
-    // Validar que sea JSON
-    const config = JSON.parse(configStr);
-    localStorage.setItem('sln_firebase_config', JSON.stringify(config));
-    window.location.reload(); // Recargar para conectar
-  } catch (error) {
-    alert("El texto ingresado no es un JSON válido de Firebase.");
-  }
+  console.log("Configuración guardada (aunque ya estamos usando las credenciales fijas).");
+  window.location.reload();
 };
 
 export const clearFirebaseConfig = () => {
-  localStorage.removeItem('sln_firebase_config');
+  console.log("Limpiando configuración...");
   window.location.reload();
 };
 
