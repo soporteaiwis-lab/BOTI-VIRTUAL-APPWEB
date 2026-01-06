@@ -19,7 +19,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 9990,
     stock: 50,
     category: Category.PROMOS,
-    imageUrl: 'https://images.unsplash.com/photo-1585553616435-2dc0a54e271d?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1629249767341-35b8665ae209?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '2',
@@ -28,7 +28,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 15000,
     stock: 100,
     category: Category.CERVEZAS,
-    imageUrl: 'https://images.unsplash.com/photo-1623352720888-75c404620f3a?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1608270586620-248524c67de9?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '3',
@@ -37,7 +37,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 12000,
     stock: 80,
     category: Category.CERVEZAS,
-    imageUrl: 'https://images.unsplash.com/photo-1571506538622-d3861c15c89c?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1618183204899-3665391d1469?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '4',
@@ -46,7 +46,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 12990,
     stock: 20,
     category: Category.LICORES,
-    imageUrl: 'https://images.unsplash.com/photo-1596711904470-36657c91e3e7?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '5',
@@ -55,7 +55,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 24990,
     stock: 15,
     category: Category.LICORES,
-    imageUrl: 'https://images.unsplash.com/photo-1527281400683-1a221290a501?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1592317586882-7798361099f6?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '6',
@@ -64,7 +64,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 1500,
     stock: 30,
     category: Category.BEBIDAS,
-    imageUrl: 'https://images.unsplash.com/photo-1504548074900-53eb1c52109e?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1590196230626-4d03d157053e?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '7',
@@ -73,7 +73,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 2500,
     stock: 15,
     category: Category.SNACKS,
-    imageUrl: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1621447504864-d8686e12698c?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '8',
@@ -82,6 +82,6 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 18990,
     stock: 10,
     category: Category.LICORES,
-    imageUrl: 'https://images.unsplash.com/photo-1628104332997-8c3104e1c7f9?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1605252062638-3b47fa436b76?q=80&w=800&auto=format&fit=crop'
   }
 ];

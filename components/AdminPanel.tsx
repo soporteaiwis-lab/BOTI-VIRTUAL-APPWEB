@@ -11,6 +11,8 @@ interface AdminPanelProps {
   editingProduct: Product | null;
 }
 
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=800&auto=format&fit=crop';
+
 const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onSave, editingProduct }) => {
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
@@ -42,7 +44,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onSave, editin
       price: 0,
       stock: 0,
       category: Category.PROMOS,
-      imageUrl: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=800&auto=format&fit=crop'
+      imageUrl: DEFAULT_IMAGE
     });
     setImagePreview('');
   };
@@ -109,7 +111,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onSave, editin
         price: formData.price || 0,
         stock: formData.stock || 0,
         category: formData.category as Category || Category.PROMOS,
-        imageUrl: formData.imageUrl || 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=800&auto=format&fit=crop'
+        imageUrl: formData.imageUrl || DEFAULT_IMAGE
       };
 
       await onSave(productToSave);

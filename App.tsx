@@ -35,9 +35,9 @@ const WelcomeScreen = ({ onLogin, onAdminLogin, storeName }: { onLogin: (name: s
     <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
       <div className="absolute inset-0 z-0">
          <img 
-          src="https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2670&auto=format&fit=crop" 
-          className="w-full h-full object-cover opacity-40"
-          alt="Nightclub background"
+          src="https://images.unsplash.com/photo-1570572127365-3bd739433e36?q=80&w=2666&auto=format&fit=crop" 
+          className="w-full h-full object-cover opacity-50"
+          alt="Neon Vibes"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-purple-900/30"></div>
         <div className="absolute top-10 left-10 w-64 h-64 bg-neon-purple rounded-full mix-blend-screen filter blur-[100px] opacity-30 animate-pulse"></div>
@@ -712,7 +712,7 @@ const App: React.FC = () => {
       <header className="relative h-64 md:h-96 overflow-hidden mb-10 group">
         <div className="absolute inset-0 bg-gradient-to-t from-dark-900 via-dark-900/40 to-transparent z-10"></div>
         <img 
-          src="https://images.unsplash.com/photo-1574096079513-d8259960295f?q=80&w=2574&auto=format&fit=crop" 
+          src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=2670&auto=format&fit=crop" 
           className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-[20s]"
           alt="Nightlife"
         />
