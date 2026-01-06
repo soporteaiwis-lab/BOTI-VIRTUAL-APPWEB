@@ -8,7 +8,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 9990,
     stock: 50,
     category: Category.PROMOS,
-    imageUrl: 'https://images.unsplash.com/photo-1626202378873-199f743c3d54?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1616422368735-3c06d2c4331d?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '2',
@@ -26,7 +26,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 12000,
     stock: 80,
     category: Category.CERVEZAS,
-    imageUrl: 'https://images.unsplash.com/photo-1623677353995-2d4e6628929e?q=80&w=800&auto=format&fit=crop' // Generic beer can image as specific Cristal hard to find on unsplash, usually users upload their own.
+    imageUrl: 'https://images.unsplash.com/photo-1606553258385-224422df522b?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '4',
@@ -35,7 +35,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 12990,
     stock: 20,
     category: Category.LICORES,
-    imageUrl: 'https://images.unsplash.com/photo-1563222370-13f9c6d17277?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '5',
@@ -53,7 +53,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 1500,
     stock: 30,
     category: Category.BEBIDAS,
-    imageUrl: 'https://images.unsplash.com/photo-1551759714-3663b9f47285?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1498028711466-9b76c8106a73?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '7',
@@ -62,16 +62,16 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 2500,
     stock: 15,
     category: Category.SNACKS,
-    imageUrl: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1621447504864-d8686e12698c?q=80&w=800&auto=format&fit=crop'
   },
-    {
+  {
     id: '8',
     name: 'Whisky Johnnie Walker Red Label',
     description: 'Botella 750cc. El whisky escocés más vendido del mundo.',
     price: 14990,
     stock: 10,
     category: Category.LICORES,
-    imageUrl: 'https://images.unsplash.com/photo-1527281400683-1aadd7709254?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1569529465841-dfecdab7503b?q=80&w=800&auto=format&fit=crop'
   }
 ];
 

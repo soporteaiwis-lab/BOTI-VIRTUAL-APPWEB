@@ -1,6 +1,6 @@
 import React from 'react';
 import { Product } from '../types';
-import { ShoppingCart, Edit, Trash2 } from 'lucide-react';
+import { ShoppingCart, Edit, Trash2, Zap } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -18,52 +18,57 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onDelete 
 }) => {
   return (
-    <div className="bg-dark-800 rounded-xl overflow-hidden shadow-lg border border-dark-700 hover:border-neon-purple transition-all duration-300 flex flex-col h-full relative group">
-      <div className="relative h-48 overflow-hidden">
+    <div className="bg-white/5 backdrop-blur-sm rounded-3xl overflow-hidden shadow-lg border border-white/5 hover:border-neon-purple/50 transition-all duration-300 flex flex-col h-full relative group hover:shadow-[0_0_30px_rgba(188,19,254,0.15)] hover:-translate-y-2">
+      <div className="relative h-56 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-t from-dark-900 to-transparent z-10 opacity-60"></div>
         <img 
           src={product.imageUrl} 
           alt={product.name} 
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
         />
         {product.stock <= 5 && product.stock > 0 && (
-          <span className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
-            ¡Pocas unidades!
+          <span className="absolute top-3 right-3 z-20 bg-orange-500/90 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full animate-pulse border border-orange-400">
+            ¡POCAS UNIDADES!
           </span>
         )}
         {product.stock === 0 && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-            <span className="text-red-500 font-bold text-xl uppercase border-2 border-red-500 px-4 py-2 rotate-12">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px] z-20 flex items-center justify-center">
+            <span className="text-red-500 font-black text-2xl uppercase border-4 border-red-500 px-6 py-2 -rotate-12 shadow-[0_0_20px_rgba(255,0,0,0.5)] tracking-widest">
               Agotado
             </span>
           </div>
         )}
-      </div>
-
-      <div className="p-4 flex-1 flex flex-col">
-        <div className="flex justify-between items-start mb-2">
-          <span className="text-xs font-semibold text-neon-blue uppercase tracking-wider">
+        <div className="absolute top-3 left-3 z-20">
+          <span className="bg-black/60 backdrop-blur-md text-neon-blue text-[10px] font-bold px-3 py-1 rounded-full border border-neon-blue/30 uppercase tracking-wider">
             {product.category}
           </span>
-          <span className="text-lg font-bold text-white">
-            ${product.price.toLocaleString('es-CL')}
-          </span>
+        </div>
+      </div>
+
+      <div className="p-5 flex-1 flex flex-col relative z-20 -mt-10">
+        <div className="flex justify-between items-end mb-3">
+           <div className="bg-black/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shadow-lg">
+             <span className="text-xl font-black text-white block">
+               ${product.price.toLocaleString('es-CL')}
+             </span>
+           </div>
         </div>
         
-        <h3 className="text-lg font-medium text-white mb-1 leading-tight">{product.name}</h3>
-        <p className="text-gray-400 text-sm mb-4 flex-1">{product.description}</p>
+        <h3 className="text-lg font-bold text-white mb-2 leading-tight group-hover:text-neon-purple transition-colors">{product.name}</h3>
+        <p className="text-gray-400 text-sm mb-6 flex-1 line-clamp-2">{product.description}</p>
         
-        <div className="mt-auto space-y-2">
+        <div className="mt-auto space-y-3">
           {isAdmin ? (
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={() => onEdit(product)}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg flex items-center justify-center gap-2 text-sm transition-colors"
+                className="bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 text-sm transition-all border border-blue-600/30"
               >
                 <Edit size={16} /> Editar
               </button>
               <button 
                 onClick={() => onDelete(product.id)}
-                className="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg flex items-center justify-center transition-colors"
+                className="bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white py-2.5 px-3 rounded-xl flex items-center justify-center transition-all border border-red-600/30"
               >
                 <Trash2 size={16} />
               </button>
@@ -72,19 +77,22 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <button 
               onClick={() => onAddToCart(product)}
               disabled={product.stock === 0}
-              className={`w-full py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 font-medium transition-all duration-200
+              className={`w-full py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all duration-300 relative overflow-hidden group/btn
                 ${product.stock > 0 
-                  ? 'bg-neon-green/90 hover:bg-neon-green text-black shadow-[0_0_15px_rgba(57,255,20,0.3)] hover:shadow-[0_0_20px_rgba(57,255,20,0.5)]' 
-                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'}`}
+                  ? 'bg-white text-black hover:bg-neon-green hover:shadow-[0_0_25px_rgba(57,255,20,0.4)]' 
+                  : 'bg-white/10 text-gray-500 cursor-not-allowed border border-white/5'}`}
             >
+              {product.stock > 0 && <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700"></span>}
               <ShoppingCart size={18} />
-              {product.stock > 0 ? 'Agregar al Carro' : 'Sin Stock'}
+              {product.stock > 0 ? 'LO QUIERO' : 'AGOTADO'}
             </button>
           )}
           
           {isAdmin && (
-            <div className="text-xs text-center text-gray-500">
-              Stock actual: {product.stock}
+            <div className="flex justify-center">
+              <span className="text-[10px] bg-white/5 px-3 py-1 rounded-full text-gray-400 border border-white/5">
+                Stock disponible: <span className="text-white font-bold">{product.stock}</span>
+              </span>
             </div>
           )}
         </div>

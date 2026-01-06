@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { INITIAL_PRODUCTS, APP_NAME, WHATSAPP_NUMBER } from './constants';
+import { APP_NAME, WHATSAPP_NUMBER } from './constants';
 import { Product, CartItem, Category } from './types';
+import { loadProductsFromStorage, saveProductsToStorage, resetDatabase } from './services/storageService';
 import ProductCard from './components/ProductCard';
 import AdminPanel from './components/AdminPanel';
 import GeminiAssistant from './components/GeminiAssistant';
-import { ShoppingCart, Moon, Search, Menu, X, Phone, LogOut, Beer, Plus, Minus, Trash2, Lock, User, ArrowRight, Upload, Image as ImageIcon, CreditCard } from 'lucide-react';
+import { ShoppingCart, Moon, Search, Menu, X, Phone, LogOut, Beer, Plus, Minus, Trash2, Lock, User, ArrowRight, Upload, Image as ImageIcon, CreditCard, RefreshCw } from 'lucide-react';
 
 // --- Login/Welcome Screen Component ---
 const WelcomeScreen = ({ onLogin, onAdminLogin }: { onLogin: (name: string) => void, onAdminLogin: () => void }) => {
@@ -29,42 +30,47 @@ const WelcomeScreen = ({ onLogin, onAdminLogin }: { onLogin: (name: string) => v
   };
 
   return (
-    <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
+      {/* Dynamic Background */}
+      <div className="absolute inset-0 z-0">
          <img 
-          src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=2070&auto=format&fit=crop" 
-          className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-overlay"
+          src="https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2670&auto=format&fit=crop" 
+          className="w-full h-full object-cover opacity-40"
           alt="Nightclub background"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-dark-900 via-dark-900/80 to-purple-900/40"></div>
-        <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-neon-purple/20 rounded-full blur-[100px] animate-pulse"></div>
-        <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-neon-blue/20 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-purple-900/30"></div>
+        {/* Animated Orbs */}
+        <div className="absolute top-10 left-10 w-64 h-64 bg-neon-purple rounded-full mix-blend-screen filter blur-[100px] opacity-30 animate-pulse"></div>
+        <div className="absolute bottom-10 right-10 w-64 h-64 bg-neon-blue rounded-full mix-blend-screen filter blur-[100px] opacity-30 animate-pulse" style={{animationDelay: '1s'}}></div>
       </div>
 
-      <div className="z-10 w-full max-w-md bg-dark-800/60 backdrop-blur-2xl border border-white/10 p-8 rounded-3xl shadow-2xl transform transition-all">
-        <div className="text-center mb-8">
-          <div className="inline-block p-3 rounded-full bg-black/40 border border-white/10 mb-4 shadow-[0_0_20px_rgba(188,19,254,0.3)]">
+      <div className="z-10 w-full max-w-md bg-white/5 backdrop-blur-2xl border border-white/10 p-8 rounded-[2rem] shadow-[0_0_50px_rgba(188,19,254,0.2)] transform transition-all hover:border-white/20">
+        <div className="text-center mb-10">
+          <div className="inline-block p-4 rounded-full bg-black/50 border border-white/10 mb-6 shadow-[0_0_25px_rgba(188,19,254,0.4)] relative">
             <Moon className="w-12 h-12 text-neon-purple fill-current drop-shadow-lg" />
+            <div className="absolute inset-0 rounded-full border border-neon-purple/50 animate-ping opacity-20"></div>
           </div>
-          <h1 className="text-4xl font-black italic text-white mb-2 tracking-tighter drop-shadow-md">
-            SALVANDO <span className="text-transparent bg-clip-text bg-gradient-to-r from-neon-green to-emerald-400">LA NOCHE</span>
+          <h1 className="text-4xl md:text-5xl font-black italic text-white mb-2 tracking-tighter drop-shadow-2xl">
+            SALVANDO <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-neon-green via-emerald-400 to-cyan-400">LA NOCHE</span>
           </h1>
-          <p className="text-gray-300 text-sm uppercase tracking-widest font-semibold">Fonocopete & Botillería 24/7</p>
+          <p className="text-gray-300 text-xs uppercase tracking-[0.3em] font-bold mt-2">
+            Botillería Virtual 24/7
+          </p>
         </div>
 
         {!showAdminInput ? (
           <form onSubmit={handleCustomerEnter} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300 ml-1">Para atenderte mejor:</label>
+              <label className="text-xs font-bold text-neon-blue ml-2 uppercase tracking-wide">Identificación</label>
               <div className="relative group">
-                <User className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-neon-purple transition-colors" size={20} />
+                <User className="absolute left-4 top-4 text-gray-400 group-focus-within:text-neon-purple transition-colors" size={20} />
                 <input 
                   type="text" 
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Tu Nombre o Teléfono"
-                  className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder-gray-500 focus:border-neon-purple focus:ring-1 focus:ring-neon-purple outline-none transition-all backdrop-blur-sm"
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-gray-500 focus:border-neon-purple focus:ring-1 focus:ring-neon-purple outline-none transition-all backdrop-blur-sm text-lg"
                   required
                 />
               </div>
@@ -72,50 +78,50 @@ const WelcomeScreen = ({ onLogin, onAdminLogin }: { onLogin: (name: string) => v
             
             <button 
               type="submit"
-              className="w-full bg-gradient-to-r from-neon-purple to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(188,19,254,0.4)] hover:shadow-[0_0_30px_rgba(188,19,254,0.6)] transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-neon-purple to-fuchsia-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold py-4 rounded-2xl shadow-[0_0_30px_rgba(188,19,254,0.4)] hover:shadow-[0_0_50px_rgba(188,19,254,0.6)] transition-all transform hover:-translate-y-1 hover:scale-[1.02] flex items-center justify-center gap-2 group"
             >
-              Entrar a la Botillería <ArrowRight size={20} />
+              Entrar a la Fiesta <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </button>
             
             <div className="pt-4 text-center">
               <button 
                 type="button" 
                 onClick={() => setShowAdminInput(true)}
-                className="text-xs text-gray-500 hover:text-white transition-colors flex items-center justify-center gap-1 mx-auto"
+                className="text-xs text-gray-500 hover:text-white transition-colors flex items-center justify-center gap-1 mx-auto hover:underline decoration-neon-green decoration-2 underline-offset-4"
               >
-                <Lock size={12} /> Acceso Master
+                <Lock size={12} /> Acceso Master / Staff
               </button>
             </div>
           </form>
         ) : (
           <form onSubmit={handleAdminEnter} className="space-y-6 animate-fade-in">
              <div className="space-y-2">
-              <label className="text-sm font-medium text-neon-green ml-1 drop-shadow-md">Zona Master</label>
+              <label className="text-xs font-bold text-neon-green ml-2 uppercase tracking-wide drop-shadow-md">Panel de Control</label>
               <div className="relative">
-                <Lock className="absolute left-4 top-3.5 text-neon-green" size={20} />
+                <Lock className="absolute left-4 top-4 text-neon-green" size={20} />
                 <input 
                   type="password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Clave de Acceso"
-                  className="w-full bg-black/40 border border-neon-green/30 rounded-xl py-3 pl-12 pr-4 text-white placeholder-gray-500 focus:border-neon-green focus:ring-1 focus:ring-neon-green outline-none transition-all"
+                  placeholder="Clave Maestra"
+                  className="w-full bg-black/40 border border-neon-green/50 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-gray-500 focus:border-neon-green focus:ring-1 focus:ring-neon-green focus:shadow-[0_0_15px_rgba(57,255,20,0.3)] outline-none transition-all text-lg"
                   autoFocus
                 />
               </div>
-              {error && <p className="text-red-500 text-xs text-center font-bold animate-pulse bg-red-500/10 py-1 rounded">{error}</p>}
+              {error && <p className="text-red-400 text-xs text-center font-bold animate-pulse bg-red-900/20 py-2 rounded-lg border border-red-500/20">{error}</p>}
             </div>
 
             <div className="flex gap-3">
               <button 
                 type="button"
                 onClick={() => { setShowAdminInput(false); setPassword(''); setError(''); }}
-                className="flex-1 bg-white/10 hover:bg-white/20 text-white font-medium py-3 rounded-xl transition-colors backdrop-blur-md"
+                className="flex-1 bg-white/5 hover:bg-white/10 border border-white/5 text-white font-medium py-3 rounded-2xl transition-colors backdrop-blur-md"
               >
-                Volver
+                Cancelar
               </button>
               <button 
                 type="submit"
-                className="flex-1 bg-neon-green hover:bg-green-500 text-black font-bold py-3 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.4)] transition-colors"
+                className="flex-1 bg-neon-green hover:bg-green-400 text-black font-bold py-3 rounded-2xl shadow-[0_0_20px_rgba(57,255,20,0.4)] transition-all hover:scale-105"
               >
                 Acceder
               </button>
@@ -123,9 +129,6 @@ const WelcomeScreen = ({ onLogin, onAdminLogin }: { onLogin: (name: string) => v
           </form>
         )}
       </div>
-      <p className="absolute bottom-4 text-white/30 text-xs flex items-center gap-1">
-        <span className="w-2 h-2 rounded-full bg-green-500"></span> Operativo 24/7
-      </p>
     </div>
   );
 };
@@ -133,8 +136,7 @@ const WelcomeScreen = ({ onLogin, onAdminLogin }: { onLogin: (name: string) => v
 // --- Main App Component ---
 const App: React.FC = () => {
   const [user, setUser] = useState<{ name: string, isMaster: boolean } | null>(null);
-  
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -142,10 +144,19 @@ const App: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Voucher State
   const [voucher, setVoucher] = useState<File | null>(null);
   const [voucherPreview, setVoucherPreview] = useState<string | null>(null);
+
+  // --- Persistence Logic ---
+  useEffect(() => {
+    // Load products from "Database" (Storage)
+    const loaded = loadProductsFromStorage();
+    setProducts(loaded);
+    setIsLoading(false);
+  }, []);
 
   // --- Cart Logic ---
   const addToCart = (product: Product) => {
@@ -203,18 +214,21 @@ const App: React.FC = () => {
 
   // --- Admin Logic ---
   const handleSaveProduct = (product: Product) => {
-    setProducts(prev => {
-      const exists = prev.find(p => p.id === product.id);
-      if (exists) {
-        return prev.map(p => p.id === product.id ? product : p);
-      }
-      return [...prev, product];
-    });
+    const updatedProducts = products.map(p => p.id === product.id ? product : p);
+    // If it's a new product (not in array), add it
+    if (!products.find(p => p.id === product.id)) {
+      updatedProducts.push(product);
+    }
+    
+    setProducts(updatedProducts);
+    saveProductsToStorage(updatedProducts); // SAVE TO DB
   };
 
   const handleDeleteProduct = (id: string) => {
-    if (window.confirm('¿Estás seguro de eliminar este producto?')) {
-      setProducts(prev => prev.filter(p => p.id !== id));
+    if (window.confirm('¿Estás seguro de eliminar este producto de la base de datos?')) {
+      const updatedProducts = products.filter(p => p.id !== id);
+      setProducts(updatedProducts);
+      saveProductsToStorage(updatedProducts); // SAVE TO DB
     }
   };
 
@@ -222,6 +236,12 @@ const App: React.FC = () => {
     setEditingProduct(product);
     setShowAdminPanel(true);
   };
+  
+  const handleResetDb = () => {
+    if(window.confirm("ADVERTENCIA: Esto borrará todos los cambios y restaurará los productos originales. ¿Continuar?")) {
+      resetDatabase();
+    }
+  }
 
   // --- Filtering ---
   const filteredProducts = products.filter(p => {
@@ -242,28 +262,33 @@ const App: React.FC = () => {
     );
   }
 
+  if (isLoading) {
+    return <div className="min-h-screen bg-black flex items-center justify-center text-neon-green">Cargando base de datos...</div>;
+  }
+
   return (
-    <div className="min-h-screen bg-dark-900 text-gray-200 font-sans pb-20 animate-fade-in relative">
+    <div className="min-h-screen bg-dark-900 text-gray-200 font-sans pb-20 animate-fade-in relative selection:bg-neon-purple selection:text-white">
       
       {/* Global Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px]"></div>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-900/20 rounded-full blur-[120px]"></div>
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+        {/* Dynamic Gradients */}
+        <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-purple-900/30 rounded-full blur-[120px] animate-pulse"></div>
+        <div className="absolute bottom-[-20%] left-[-10%] w-[800px] h-[800px] bg-blue-900/30 rounded-full blur-[120px] animate-pulse" style={{animationDelay:'2s'}}></div>
       </div>
 
       {/* Navbar */}
-      <nav className="sticky top-0 z-30 bg-dark-900/80 backdrop-blur-xl border-b border-white/10">
+      <nav className="sticky top-0 z-30 bg-black/70 backdrop-blur-xl border-b border-white/10 shadow-2xl">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="bg-gradient-to-br from-neon-purple to-pink-600 p-2 rounded-lg text-white shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-br from-neon-purple to-pink-600 p-2.5 rounded-xl text-white shadow-[0_0_15px_rgba(188,19,254,0.5)]">
               <Moon size={24} className="fill-current" />
             </div>
-            <div>
-              <h1 className="text-xl md:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400 leading-none">
+            <div className="hidden sm:block">
+              <h1 className="text-xl md:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400 leading-none tracking-tight">
                 {APP_NAME}
               </h1>
-              <span className="text-[10px] text-neon-green font-bold tracking-[0.2em] uppercase">Fonocopete 24/7</span>
+              <span className="text-[10px] text-neon-green font-bold tracking-[0.3em] uppercase block mt-0.5 text-shadow-glow">Fonocopete 24/7</span>
             </div>
           </div>
 
@@ -271,26 +296,26 @@ const App: React.FC = () => {
             <div className="relative group">
               <input 
                 type="text" 
-                placeholder="Busca tu copete..."
+                placeholder="Busca tu trago..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-dark-800/50 border border-dark-700 rounded-full py-2 pl-4 pr-10 text-sm focus:border-neon-purple outline-none w-64 transition-all focus:bg-dark-800"
+                className="bg-white/5 border border-white/10 rounded-full py-2.5 pl-5 pr-12 text-sm focus:border-neon-purple outline-none w-72 transition-all focus:bg-black/80 focus:shadow-[0_0_15px_rgba(188,19,254,0.2)]"
               />
-              <Search className="absolute right-3 top-2.5 text-gray-500 group-focus-within:text-neon-purple transition-colors" size={16} />
+              <Search className="absolute right-4 top-2.5 text-gray-500 group-focus-within:text-neon-purple transition-colors" size={18} />
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-gray-400 bg-dark-800/50 py-1.5 px-3 rounded-full border border-white/5">
-              <User size={16} />
-              <span><span className={user.isMaster ? "text-neon-purple font-bold" : "text-gray-200"}>{user.name}</span></span>
+            <div className="flex items-center gap-3 text-sm bg-white/5 py-1.5 px-4 rounded-full border border-white/5 backdrop-blur-md">
+              <div className={`w-2 h-2 rounded-full ${user.isMaster ? 'bg-neon-green animate-pulse' : 'bg-gray-400'}`}></div>
+              <span className="font-medium text-gray-300">Hola, <span className={user.isMaster ? "text-neon-purple font-bold" : "text-white"}>{user.name}</span></span>
             </div>
             
             <button 
               onClick={() => setShowCart(true)}
-              className="relative text-white hover:text-neon-blue transition-colors bg-dark-800/50 p-2.5 rounded-full hover:bg-dark-700 border border-white/5"
+              className="relative group text-white hover:text-neon-blue transition-colors bg-white/5 p-3 rounded-xl hover:bg-white/10 border border-white/5 hover:border-neon-blue/30"
             >
-              <ShoppingCart size={22} />
+              <ShoppingCart size={22} className="group-hover:scale-110 transition-transform" />
               {cartItemCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-neon-green text-black text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-lg shadow-green-500/50 animate-bounce">
+                <span className="absolute -top-1.5 -right-1.5 bg-neon-green text-black text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-[0_0_10px_rgba(57,255,20,0.6)] animate-bounce">
                   {cartItemCount}
                 </span>
               )}
@@ -298,23 +323,23 @@ const App: React.FC = () => {
 
             <button 
               onClick={() => setUser(null)}
-              className="text-white/50 hover:text-red-400 transition-colors"
-              title="Salir"
+              className="text-white/40 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg"
+              title="Cerrar Sesión"
             >
               <LogOut size={20} />
             </button>
           </div>
 
-          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden text-white p-2">
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden text-white p-2 hover:bg-white/10 rounded-lg transition-colors">
             {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-dark-800 border-b border-dark-700 p-4 space-y-4 animate-fade-in-down shadow-2xl">
-             <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/5">
-               <span className="text-gray-400">Usuario: <b className="text-white">{user.name}</b></span>
+          <div className="md:hidden bg-dark-900 border-b border-white/10 p-4 space-y-4 animate-fade-in-down shadow-2xl backdrop-blur-xl bg-opacity-95">
+             <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/5">
+               <span className="text-gray-400 flex items-center gap-2"><User size={16}/> {user.name}</span>
              </div>
              <div className="relative">
               <input 
@@ -322,7 +347,7 @@ const App: React.FC = () => {
                 placeholder="Buscar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-dark-900 border border-dark-700 rounded-lg py-3 px-4 text-white"
+                className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:border-neon-blue outline-none"
               />
             </div>
              <button 
@@ -330,14 +355,14 @@ const App: React.FC = () => {
                 setShowCart(true);
                 setMobileMenuOpen(false);
               }}
-              className="w-full flex items-center gap-2 text-white py-3 px-2 hover:bg-white/5 rounded-lg transition-colors"
+              className="w-full flex items-center justify-center gap-2 text-white bg-white/5 py-3 px-2 rounded-xl active:bg-white/10"
             >
-              <ShoppingCart size={20} />
+              <ShoppingCart size={20} className="text-neon-green" />
               Ver Carro ({cartItemCount})
             </button>
             <button 
               onClick={() => setUser(null)}
-              className="w-full flex items-center gap-2 text-red-400 py-3 px-2 hover:bg-red-500/10 rounded-lg mt-2"
+              className="w-full flex items-center justify-center gap-2 text-red-400 py-3 px-2 border border-red-900/30 rounded-xl mt-2"
             >
               <LogOut size={20} /> Salir
             </button>
@@ -347,41 +372,52 @@ const App: React.FC = () => {
 
       {/* Admin Quick Actions Bar */}
       {user.isMaster && (
-        <div className="bg-dark-800/90 border-b border-neon-purple/30 py-3 px-4 sticky top-[73px] z-20 shadow-[0_4px_20px_rgba(0,0,0,0.5)] backdrop-blur-md">
+        <div className="bg-black/60 border-b border-neon-purple/30 py-3 px-4 sticky top-[80px] z-20 shadow-[0_4px_20px_rgba(0,0,0,0.5)] backdrop-blur-md">
           <div className="container mx-auto flex justify-between items-center">
-            <span className="text-neon-purple font-bold text-sm uppercase tracking-wider flex items-center gap-2 drop-shadow-sm">
-              <Lock size={14} /> Modo Dios Activo
+            <span className="text-neon-purple font-bold text-xs md:text-sm uppercase tracking-wider flex items-center gap-2 drop-shadow-sm">
+              <Lock size={14} /> Modo Master (Base de Datos Activa)
             </span>
-            <button 
-              onClick={() => {
-                setEditingProduct(null);
-                setShowAdminPanel(true);
-              }}
-              className="bg-neon-green hover:bg-green-500 text-black font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-sm transition-all shadow-[0_0_10px_rgba(57,255,20,0.3)] hover:shadow-[0_0_20px_rgba(57,255,20,0.5)]"
-            >
-              <Plus size={16} /> Nuevo Producto / Promo
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleResetDb}
+                className="bg-red-900/30 hover:bg-red-900/50 text-red-300 border border-red-500/30 font-bold py-2 px-3 rounded-lg flex items-center gap-2 text-xs transition-all"
+                title="Restaurar productos originales"
+              >
+                <RefreshCw size={14} /> Reset DB
+              </button>
+              <button 
+                onClick={() => {
+                  setEditingProduct(null);
+                  setShowAdminPanel(true);
+                }}
+                className="bg-neon-green hover:bg-green-400 text-black font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-xs md:text-sm transition-all shadow-[0_0_15px_rgba(57,255,20,0.3)] hover:shadow-[0_0_25px_rgba(57,255,20,0.5)] hover:scale-105"
+              >
+                <Plus size={16} /> Agregar Producto
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Hero Section */}
-      <header className="relative h-64 md:h-80 overflow-hidden mb-8 group">
-        <div className="absolute inset-0 bg-gradient-to-t from-dark-900 via-dark-900/60 to-transparent z-10"></div>
+      <header className="relative h-64 md:h-96 overflow-hidden mb-10 group">
+        <div className="absolute inset-0 bg-gradient-to-t from-dark-900 via-dark-900/40 to-transparent z-10"></div>
         <img 
           src="https://images.unsplash.com/photo-1574096079513-d8259960295f?q=80&w=2574&auto=format&fit=crop" 
           className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-[20s]"
           alt="Nightlife"
         />
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4">
-          <h2 className="text-4xl md:text-6xl font-black text-white drop-shadow-[0_0_30px_rgba(0,0,0,0.8)] mb-2 tracking-tight">
-            BIENVENIDO A <span className="text-neon-blue inline-block transform hover:scale-110 transition-transform cursor-default">LA PREVIA</span>
-          </h2>
-          <p className="text-lg md:text-xl text-gray-200 max-w-2xl font-light bg-black/30 backdrop-blur-sm p-2 rounded-xl">
-            {user.name}, tenemos el hielo listo y el copete helado.
-          </p>
-          <div className="mt-4 flex items-center gap-2 text-sm text-neon-green font-mono border border-neon-green/30 bg-black/50 px-4 py-1 rounded-full">
-            <Phone size={14} /> WhatsApp: {WHATSAPP_NUMBER}
+          <div className="animate-fade-in-up">
+            <h2 className="text-4xl md:text-7xl font-black text-white drop-shadow-[0_0_30px_rgba(0,0,0,0.8)] mb-2 tracking-tight">
+              BIENVENIDO A <span className="text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-purple-400 inline-block">LA PREVIA</span>
+            </h2>
+            <p className="text-lg md:text-2xl text-gray-200 max-w-2xl font-light bg-black/40 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 mx-auto">
+              {user.name}, tenemos el hielo listo y el copete helado.
+            </p>
+          </div>
+          <div className="mt-6 flex items-center gap-2 text-sm text-neon-green font-mono border border-neon-green/30 bg-black/60 px-6 py-2 rounded-full shadow-[0_0_20px_rgba(57,255,20,0.2)] hover:shadow-[0_0_30px_rgba(57,255,20,0.4)] transition-shadow cursor-pointer">
+            <Phone size={16} /> WhatsApp: {WHATSAPP_NUMBER}
           </div>
         </div>
       </header>
@@ -390,15 +426,15 @@ const App: React.FC = () => {
       <main className="container mx-auto px-4 relative z-10">
         
         {/* Categories */}
-        <div className="flex overflow-x-auto pb-4 gap-3 mb-8 no-scrollbar sticky top-[130px] md:top-[80px] z-10 bg-dark-900/95 backdrop-blur-md py-3 -mx-4 px-4 md:mx-0 md:px-0 border-b border-white/5 md:border-none md:bg-transparent">
+        <div className="flex overflow-x-auto pb-4 gap-3 mb-10 no-scrollbar sticky top-[135px] md:top-[90px] z-10 bg-dark-900/90 backdrop-blur-xl py-4 -mx-4 px-4 md:mx-0 md:px-0 border-b border-white/5 md:border-none md:bg-transparent md:backdrop-blur-none transition-all">
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`whitespace-nowrap px-6 py-2.5 rounded-full font-bold text-sm transition-all border ${
+              className={`whitespace-nowrap px-6 py-2.5 rounded-full font-bold text-sm transition-all border shadow-lg ${
                 selectedCategory === cat 
-                  ? 'bg-neon-blue text-black border-neon-blue shadow-[0_0_15px_rgba(4,217,255,0.4)] transform scale-105' 
-                  : 'bg-dark-800/80 border-dark-700 text-gray-400 hover:border-gray-500 hover:text-white hover:bg-dark-700'
+                  ? 'bg-neon-blue text-black border-neon-blue shadow-[0_0_20px_rgba(4,217,255,0.4)] transform scale-105' 
+                  : 'bg-dark-800/80 border-dark-700 text-gray-400 hover:border-white/30 hover:text-white hover:bg-dark-700 backdrop-blur-sm'
               }`}
             >
               {cat}
@@ -407,7 +443,7 @@ const App: React.FC = () => {
         </div>
 
         {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {filteredProducts.map(product => (
             <ProductCard 
               key={product.id}
@@ -421,19 +457,19 @@ const App: React.FC = () => {
         </div>
 
         {filteredProducts.length === 0 && (
-          <div className="text-center py-24 bg-dark-800/30 rounded-3xl border border-white/5 backdrop-blur-sm">
-            <div className="inline-block p-6 rounded-full bg-dark-800/50 mb-4">
-              <Beer size={48} className="text-gray-600 opacity-50" />
+          <div className="text-center py-32 bg-white/5 rounded-[2rem] border border-white/5 backdrop-blur-sm flex flex-col items-center">
+            <div className="inline-block p-8 rounded-full bg-black/40 mb-6 border border-white/10">
+              <Beer size={64} className="text-gray-600 opacity-50" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-300">Se secó el pozo...</h3>
-            <p className="text-gray-500 mt-2">No encontramos productos en esta categoría.</p>
+            <h3 className="text-3xl font-bold text-gray-300">Se secó el pozo...</h3>
+            <p className="text-gray-500 mt-2 text-lg">No encontramos productos en esta categoría.</p>
             {user.isMaster && (
               <button 
                 onClick={() => {
                    setEditingProduct(null);
                    setShowAdminPanel(true);
                 }}
-                className="mt-6 text-neon-green hover:text-white font-bold underline decoration-neon-green decoration-2 underline-offset-4"
+                className="mt-8 px-6 py-3 bg-neon-green/10 text-neon-green hover:bg-neon-green hover:text-black font-bold rounded-xl transition-all border border-neon-green/30"
               >
                 Agrega el primero aquí
               </button>
@@ -445,14 +481,14 @@ const App: React.FC = () => {
       {/* Cart Sidebar */}
       {showCart && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onClick={() => setShowCart(false)}></div>
-          <div className="relative w-full max-w-md bg-dark-800 h-full shadow-2xl flex flex-col border-l border-dark-700 animate-slide-in-right">
-            <div className="p-6 border-b border-dark-700 flex justify-between items-center bg-dark-900/90 backdrop-blur-md">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={() => setShowCart(false)}></div>
+          <div className="relative w-full max-w-md bg-dark-900 h-full shadow-2xl flex flex-col border-l border-white/10 animate-slide-in-right">
+            <div className="p-6 border-b border-white/10 flex justify-between items-center bg-black/40 backdrop-blur-md">
               <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                <span className="bg-neon-green/20 text-neon-green p-2 rounded-lg"><ShoppingCart size={20} /></span> 
-                Pedido de {user.name}
+                <span className="bg-neon-green text-black p-2 rounded-lg shadow-[0_0_15px_rgba(57,255,20,0.4)]"><ShoppingCart size={20} /></span> 
+                Tu Carrete
               </h2>
-              <button onClick={() => setShowCart(false)} className="text-gray-500 hover:text-white transition-colors bg-white/5 p-2 rounded-lg">
+              <button onClick={() => setShowCart(false)} className="text-gray-500 hover:text-white transition-colors bg-white/5 p-2 rounded-lg hover:bg-white/10">
                 <X size={20} />
               </button>
             </div>
@@ -460,45 +496,45 @@ const App: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {cart.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                  <div className="bg-dark-900 p-6 rounded-full mb-4 border border-dark-700">
-                    <ShoppingCart size={40} className="opacity-30" />
+                  <div className="bg-white/5 p-8 rounded-full mb-6 border border-white/5">
+                    <ShoppingCart size={48} className="opacity-30" />
                   </div>
-                  <p className="text-lg font-medium">Tu carro está vacío</p>
-                  <p className="text-sm opacity-60">(y tu vaso también)</p>
-                  <button onClick={() => setShowCart(false)} className="mt-6 text-neon-blue text-sm hover:underline">
-                    Ir a comprar algo
+                  <p className="text-xl font-bold text-gray-300">Tu carro está vacío</p>
+                  <p className="text-sm opacity-60 mt-1">(y tu vaso también)</p>
+                  <button onClick={() => setShowCart(false)} className="mt-8 px-6 py-2 border border-neon-blue text-neon-blue rounded-full hover:bg-neon-blue hover:text-black transition-all">
+                    Volver al catálogo
                   </button>
                 </div>
               ) : (
                 cart.map(item => (
-                  <div key={item.id} className="flex gap-4 bg-dark-900/40 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
-                    <img src={item.imageUrl} alt={item.name} className="w-20 h-20 object-cover rounded-lg shadow-md" />
+                  <div key={item.id} className="flex gap-4 bg-white/5 p-4 rounded-2xl border border-white/5 hover:border-white/10 transition-colors group">
+                    <img src={item.imageUrl} alt={item.name} className="w-20 h-20 object-cover rounded-xl shadow-lg" />
                     <div className="flex-1 flex flex-col justify-between">
                       <div>
-                        <h4 className="font-bold text-white text-sm line-clamp-2 leading-snug">{item.name}</h4>
+                        <h4 className="font-bold text-white text-sm line-clamp-2 leading-snug group-hover:text-neon-blue transition-colors">{item.name}</h4>
                         <p className="text-neon-green font-bold text-sm mt-1">${item.price.toLocaleString('es-CL')}</p>
                       </div>
                       
-                      <div className="flex items-center gap-3 mt-2 bg-dark-900/50 w-fit p-1 rounded-lg border border-white/5">
+                      <div className="flex items-center gap-3 mt-3 bg-black/40 w-fit p-1 rounded-lg border border-white/10">
                         <button 
                           onClick={() => updateQuantity(item.id, -1)}
-                          className="w-6 h-6 rounded bg-dark-700 flex items-center justify-center hover:bg-dark-600 text-white transition-colors"
+                          className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center hover:bg-white/20 text-white transition-colors"
                         >
-                          <Minus size={12} />
+                          <Minus size={14} />
                         </button>
                         <span className="text-sm font-bold w-6 text-center text-white">{item.quantity}</span>
                         <button 
                           onClick={() => updateQuantity(item.id, 1)}
-                          className="w-6 h-6 rounded bg-dark-700 flex items-center justify-center hover:bg-dark-600 text-white transition-colors"
+                          className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center hover:bg-white/20 text-white transition-colors"
                         >
-                          <Plus size={12} />
+                          <Plus size={14} />
                         </button>
                       </div>
                     </div>
                     <div className="flex flex-col justify-center">
                         <button 
                           onClick={() => removeFromCart(item.id)}
-                          className="text-gray-500 hover:text-red-500 p-2 transition-colors"
+                          className="text-gray-600 hover:text-red-500 p-2 transition-colors bg-transparent hover:bg-red-500/10 rounded-lg"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -510,71 +546,71 @@ const App: React.FC = () => {
             
             {/* Voucher and Bank Section */}
             {cart.length > 0 && (
-              <div className="p-6 border-t border-dark-700 bg-dark-900/50">
-                <h3 className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider flex items-center gap-2">
+              <div className="p-6 border-t border-white/10 bg-black/20 backdrop-blur-sm">
+                <h3 className="text-xs font-bold text-neon-blue mb-4 uppercase tracking-wider flex items-center gap-2">
                   <CreditCard size={14} /> Datos Transferencia
                 </h3>
                 
-                <div className="bg-dark-900 p-3 rounded-xl border border-white/10 mb-4 text-xs text-gray-400 space-y-1">
-                    <p className="flex justify-between"><span>Banco:</span> <span className="text-white font-medium">Estado</span></p>
-                    <p className="flex justify-between"><span>Cuenta RUT:</span> <span className="text-white font-medium">12.345.678-9</span></p>
-                    <p className="flex justify-between"><span>Nombre:</span> <span className="text-white font-medium">Salvando La Noche SpA</span></p>
-                    <p className="flex justify-between"><span>Email:</span> <span className="text-white font-medium">pagos@salvando.cl</span></p>
+                <div className="bg-white/5 p-4 rounded-xl border border-white/10 mb-4 text-xs text-gray-300 space-y-2 font-mono">
+                    <p className="flex justify-between border-b border-white/5 pb-1"><span>Banco:</span> <span className="text-white font-bold">Estado</span></p>
+                    <p className="flex justify-between border-b border-white/5 pb-1"><span>Cuenta RUT:</span> <span className="text-white font-bold">12.345.678-9</span></p>
+                    <p className="flex justify-between border-b border-white/5 pb-1"><span>Nombre:</span> <span className="text-white font-bold">Salvando La Noche SpA</span></p>
+                    <p className="flex justify-between"><span>Email:</span> <span className="text-white font-bold">pagos@salvando.cl</span></p>
                 </div>
 
                 {!voucherPreview ? (
-                    <div className="relative">
+                    <div className="relative group">
                         <input 
                             type="file" 
                             accept="image/*" 
                             onChange={handleVoucherUpload}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         />
-                        <div className="border-2 border-dashed border-dark-600 rounded-xl p-4 flex flex-col items-center justify-center gap-2 hover:border-neon-purple hover:bg-neon-purple/5 transition-all group">
-                            <div className="bg-dark-800 p-2 rounded-full group-hover:scale-110 transition-transform">
-                                <Upload size={20} className="text-neon-purple" />
+                        <div className="border-2 border-dashed border-white/20 rounded-xl p-6 flex flex-col items-center justify-center gap-2 group-hover:border-neon-purple group-hover:bg-neon-purple/5 transition-all">
+                            <div className="bg-white/10 p-3 rounded-full group-hover:scale-110 transition-transform group-hover:bg-neon-purple/20">
+                                <Upload size={24} className="text-gray-400 group-hover:text-neon-purple" />
                             </div>
                             <span className="text-sm text-gray-300 font-medium group-hover:text-white">Adjuntar Comprobante</span>
                             <span className="text-[10px] text-gray-500">Click o arrastra tu foto aquí</span>
                         </div>
                     </div>
                 ) : (
-                    <div className="relative rounded-xl overflow-hidden border border-neon-green/30 group">
+                    <div className="relative rounded-xl overflow-hidden border border-neon-green/50 group shadow-[0_0_15px_rgba(57,255,20,0.2)]">
                         <img src={voucherPreview} alt="Comprobante" className="w-full h-32 object-cover opacity-80" />
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
                             <button 
                                 onClick={removeVoucher}
-                                className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transform hover:scale-110 transition-all"
+                                className="bg-red-500 text-white p-3 rounded-full hover:bg-red-600 transform hover:scale-110 transition-all shadow-lg"
                             >
-                                <Trash2 size={20} />
+                                <Trash2 size={24} />
                             </button>
                         </div>
-                        <div className="absolute bottom-2 left-2 bg-black/80 px-2 py-1 rounded text-[10px] text-neon-green flex items-center gap-1 backdrop-blur-sm border border-neon-green/20 z-10">
-                            <ImageIcon size={10} /> Voucher cargado
+                        <div className="absolute bottom-2 left-2 bg-black/80 px-3 py-1.5 rounded-lg text-[10px] text-neon-green flex items-center gap-1.5 backdrop-blur-sm border border-neon-green/20 z-10 font-bold uppercase tracking-wide">
+                            <ImageIcon size={12} /> Voucher listo
                         </div>
                     </div>
                 )}
             </div>
             )}
 
-            <div className="p-6 bg-dark-900 border-t border-dark-700 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-20">
+            <div className="p-6 bg-black/60 border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] z-20 backdrop-blur-xl">
               <div className="flex justify-between items-center mb-6">
                 <span className="text-gray-400 font-medium">Total a Pagar</span>
-                <span className="text-white text-2xl font-black">${cartTotal.toLocaleString('es-CL')}</span>
+                <span className="text-white text-3xl font-black tracking-tight">${cartTotal.toLocaleString('es-CL')}</span>
               </div>
               <button 
                 onClick={handleCheckout}
                 disabled={cart.length === 0}
                 className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98]
                   ${cart.length > 0 
-                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white shadow-lg shadow-green-900/50' 
-                    : 'bg-dark-700 text-gray-500 cursor-not-allowed'}`}
+                    ? 'bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-500 hover:to-emerald-400 text-white shadow-[0_0_20px_rgba(0,255,0,0.3)]' 
+                    : 'bg-white/10 text-gray-500 cursor-not-allowed border border-white/5'}`}
               >
-                <Phone size={22} />
-                {voucher ? 'Enviar Pedido y Voucher' : 'Pedir por WhatsApp'}
+                <Phone size={22} className={cart.length > 0 ? "animate-pulse" : ""} />
+                {voucher ? 'ENVIAR PEDIDO' : 'PEDIR POR WHATSAPP'}
               </button>
               <p className="text-center text-[10px] uppercase tracking-widest text-gray-500 mt-4">
-                 {voucher ? 'Se abrirá WhatsApp. Recuerda enviar la foto.' : 'Coordina pago y entrega en el chat.'}
+                 {voucher ? 'Se abrirá WhatsApp con los detalles.' : 'Coordinaremos el pago en el chat.'}
               </p>
             </div>
           </div>
