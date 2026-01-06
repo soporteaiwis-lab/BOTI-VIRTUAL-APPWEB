@@ -361,11 +361,18 @@ const CheckoutModal = ({
     };
 
     try {
-        // 1. Usar IA para redactar un mensaje limpio
+        // 1. Usar IA para redactar un mensaje limpio (texto plano, sin formateo complejo de teléfono)
         const formattedMessage = await prepareOrderMessage(orderData);
         
-        // 2. Limpiar el número de destino (quitar +, espacios, guiones)
-        const cleanStoreNumber = config.whatsappNumber.replace(/\D/g, '');
+        // 2. Limpiar el número de LA TIENDA para el link
+        let cleanStoreNumber = config.whatsappNumber.replace(/\D/g, '');
+        
+        // Auto-fix para Chile si el dueño puso solo 8 digitos (ej: 912345678 -> 56912345678)
+        if (cleanStoreNumber.length === 8) {
+           cleanStoreNumber = '569' + cleanStoreNumber;
+        } else if (cleanStoreNumber.length === 9 && cleanStoreNumber.startsWith('9')) {
+           cleanStoreNumber = '56' + cleanStoreNumber;
+        }
         
         // 3. Crear el link
         const whatsappUrl = `https://wa.me/${cleanStoreNumber}?text=${encodeURIComponent(formattedMessage)}`;

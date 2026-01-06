@@ -154,24 +154,36 @@ export const prepareOrderMessage = async (orderDetails: any): Promise<string> =>
   try {
     const ai = new GoogleGenAI({ apiKey: getApiKey() });
     
+    // Simpler prompt to avoid markdown issues with phone numbers
     const prompt = `
     Act as a sales assistant for "Salvando La Noche".
-    Take the following raw JSON order data and format it into a CLEAN, ATTRACTIVE WhatsApp message string ready to be sent to the store owner.
+    Take the provided order data and create a SIMPLE, CLEAN WhatsApp message in Spanish.
     
     DATA:
-    ${JSON.stringify(orderDetails)}
+    Store: ${orderDetails.storeName}
+    Client Name: ${orderDetails.customerName}
+    Client Phone: ${orderDetails.customerPhone}
+    Items: ${orderDetails.items.join(", ")}
+    Subtotal: ${orderDetails.subtotal}
+    Is Delivery: ${orderDetails.isDelivery}
+    Address: ${orderDetails.address} (Dist: ${orderDetails.distance})
+    Delivery Fee: ${orderDetails.deliveryFee}
+    Total: ${orderDetails.total}
+    Payment Method: ${orderDetails.paymentMethod}
+    Cash Given: ${orderDetails.cashGiven}
+    Voucher Info: ${orderDetails.voucherAnalysis || "N/A"}
 
-    INSTRUCTIONS:
-    1. Start with "Hola *${orderDetails.storeName}*! Nuevo Pedido 🛒"
-    2. Customer info: Name and Phone.
-    3. List items clearly with bullet points.
-    4. Show Total Price in CLP format ($X.XXX).
-    5. Delivery Method: Clearly state if it's Delivery (include Address and validated distance) or Pickup.
-    6. Payment Method: 
-       - If Transfer: Include the "voucherAnalysis" text summary nicely formatted.
-       - If Cash: Show amount and change (vuelto).
-    7. Use emojis relevant to nightlife/drinks.
-    8. NO Markdown code blocks. Just the plain text ready for WhatsApp URL.
+    OUTPUT FORMAT RULES:
+    1. First line: "Hola *${orderDetails.storeName}*! Nuevo Pedido 🛒"
+    2. Second line: "Cliente: ${orderDetails.customerName} (Tel: ${orderDetails.customerPhone})"
+    3. Third line: Empty
+    4. List items (one per line with - ).
+    5. Show Total.
+    6. Show Delivery details clearly.
+    7. Show Payment details.
+    8. DO NOT use bold (*) on the phone number to avoid breaking links. 
+    9. Use emojis.
+    10. Return ONLY the text string.
     `;
 
     const response = await ai.models.generateContent({
@@ -182,6 +194,7 @@ export const prepareOrderMessage = async (orderDetails: any): Promise<string> =>
     return response.text || "Error generando mensaje.";
   } catch (error) {
     console.error("Error preparing message:", error);
-    return "Hola, envío mi pedido (Error al generar formato IA).";
+    // Fallback manual seguro
+    return `Hola ${orderDetails.storeName}, soy ${orderDetails.customerName}. Mi pedido total es $${orderDetails.total}.`;
   }
 };
