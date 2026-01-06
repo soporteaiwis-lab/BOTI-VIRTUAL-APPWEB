@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Chat } from "@google/genai";
 
 let chatSession: Chat | null = null;
@@ -51,12 +52,18 @@ export const generateImagePrompt = async (productName: string): Promise<string> 
     const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Describe visualmente el producto de licor o snack llamado "${productName}" para generar una imagen publicitaria de alta calidad. 
-      La descripción debe ser en Inglés (para el generador de imágenes), corta, detallada y atractiva.
-      Estilo: Fotografía de producto profesional, iluminación de estudio, fondo oscuro de bar elegante o luces de neón desenfocadas.
-      Solo devuelve la descripción en inglés, nada más.`,
+      contents: `
+      Act as an expert prompt engineer for AI image generators (like Pollinations/Midjourney).
+      Create a precise, descriptive prompt in ENGLISH for the product: "${productName}".
+
+      SPECIFIC INSTRUCTIONS:
+      1. If the product is CIGARETTES ("cigarros", "cajetilla"): Describe a realistic standard cigarette pack box. EXPLICITLY state that the package has the brand name "${productName}" written clearly on the box.
+      2. If the product is ALCOHOL/BEER: Describe the specific bottle or can shape associated with this type of drink. EXPLICITLY state that the label features the text "${productName}".
+      3. VISUAL STYLE: Professional product photography, 8k resolution, sharp focus, cinematic lighting, neon/nightclub background blurred (bokeh).
+      4. OUTPUT: Return ONLY the English prompt string. No introduction, no quotes.
+      `,
     });
-    return response.text || `${productName} alcoholic beverage professional product photography neon background`;
+    return response.text || `${productName} product packaging professional photography neon background`;
   } catch (error) {
     console.error("Error generating prompt:", error);
     return `${productName} bottle professional photography dark background`;
