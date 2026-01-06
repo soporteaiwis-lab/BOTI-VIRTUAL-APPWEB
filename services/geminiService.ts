@@ -62,3 +62,34 @@ export const generateImagePrompt = async (productName: string): Promise<string> 
     return `${productName} bottle professional photography dark background`;
   }
 };
+
+export const analyzeVoucherImage = async (base64Image: string): Promise<string> => {
+  try {
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
+    
+    // Clean base64 string if it has the data prefix
+    const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              mimeType: 'image/jpeg',
+              data: cleanBase64
+            }
+          },
+          {
+            text: "Analiza este comprobante de transferencia bancaria. Extrae los siguientes datos y formatéalos en un texto muy breve y claro para enviar por WhatsApp: Banco de origen, Banco de destino, Monto transferido, Fecha/Hora y Número de operación o Folio. Si no parece un comprobante, dilo. Formato ejemplo: '✅ Transferencia Detectada: Banco Estado -> Santander. Monto: $10.000. Fecha: 12/10. Folio: 12345'."
+          }
+        ]
+      }
+    });
+
+    return response.text || "No pude leer el comprobante automáticamente.";
+  } catch (error) {
+    console.error("Error analyzing voucher:", error);
+    return "Error al analizar la imagen con IA.";
+  }
+};

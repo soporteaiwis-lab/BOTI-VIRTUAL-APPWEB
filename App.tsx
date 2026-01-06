@@ -1,13 +1,13 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Product, CartItem, Category, StoreConfig } from './types';
 import { DEFAULT_STORE_CONFIG } from './constants';
 import { loadProductsFromStorage, saveProductToStorage, deleteProductFromStorage, resetDatabase, loadSettingsFromStorage, saveSettingsToStorage } from './services/storageService';
 import { isCloudActive, clearFirebaseConfig } from './services/firebase';
+import { analyzeVoucherImage } from './services/geminiService';
 import ProductCard from './components/ProductCard';
 import AdminPanel from './components/AdminPanel';
 import GeminiAssistant from './components/GeminiAssistant';
-import { ShoppingCart, Moon, Search, Menu, X, Phone, LogOut, Beer, Plus, Minus, Trash2, Lock, User, ArrowRight, Upload, Image as ImageIcon, CreditCard, RefreshCw, Cloud, CloudOff, Database, Settings as SettingsIcon, Save } from 'lucide-react';
+import { ShoppingCart, Moon, Search, Menu, X, Phone, LogOut, Beer, Plus, Minus, Trash2, Lock, User, ArrowRight, Upload, Image as ImageIcon, CreditCard, RefreshCw, Cloud, CloudOff, Database, Settings as SettingsIcon, Save, DollarSign, Wallet, ScanLine, Loader2, CheckCircle } from 'lucide-react';
 
 // --- Login/Welcome Screen Component ---
 const WelcomeScreen = ({ onLogin, onAdminLogin, storeName }: { onLogin: (name: string) => void, onAdminLogin: (pass: string) => boolean, storeName: string }) => {
@@ -202,6 +202,228 @@ const SettingsModal = ({ config, onClose, onSave }: { config: StoreConfig, onClo
   );
 };
 
+// --- Checkout Modal ---
+const CheckoutModal = ({ 
+  isOpen, 
+  onClose, 
+  cart, 
+  total, 
+  config, 
+  userName 
+}: { 
+  isOpen: boolean, 
+  onClose: () => void, 
+  cart: CartItem[], 
+  total: number, 
+  config: StoreConfig, 
+  userName: string 
+}) => {
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | null>(null);
+  const [cashAmount, setCashAmount] = useState<string>('');
+  const [voucher, setVoucher] = useState<File | null>(null);
+  const [voucherPreview, setVoucherPreview] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [voucherAnalysis, setVoucherAnalysis] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  const handleVoucherUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setVoucher(file);
+      const url = URL.createObjectURL(file);
+      setVoucherPreview(url);
+      setVoucherAnalysis(null);
+      
+      // Convert to base64 for Gemini
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        setIsAnalyzing(true);
+        try {
+          const analysis = await analyzeVoucherImage(base64String);
+          setVoucherAnalysis(analysis);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setIsAnalyzing(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSendOrder = () => {
+    let message = `Hola *${config.storeName}*, soy ${userName}.%0A%0A*MI PEDIDO:*%0A` + 
+      cart.map(item => `- ${item.quantity}x ${item.name} ($${(item.price * item.quantity).toLocaleString('es-CL')})`).join('%0A') +
+      `%0A%0A*TOTAL: $${total.toLocaleString('es-CL')}*`;
+
+    if (paymentMethod === 'cash') {
+      message += `%0A%0A💵 *PAGO EN EFECTIVO*`;
+      if (cashAmount) {
+        message += `%0APago con: $${parseInt(cashAmount).toLocaleString('es-CL')}`;
+        const change = parseInt(cashAmount) - total;
+        if (change > 0) message += ` (Vuelto: $${change.toLocaleString('es-CL')})`;
+      } else {
+        message += `%0APago justo.`;
+      }
+    } else if (paymentMethod === 'transfer') {
+      message += `%0A%0A📲 *TRANSFERENCIA*`;
+      if (voucherAnalysis) {
+        message += `%0A${encodeURIComponent(voucherAnalysis)}`;
+      } else {
+        message += `%0A(Adjuntaré comprobante en el chat)`;
+      }
+    }
+
+    window.open(`https://wa.me/${config.whatsappNumber}?text=${message}`, '_blank');
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/90 backdrop-blur-md animate-fade-in">
+      <div className="bg-dark-900 border-t md:border border-white/10 w-full max-w-xl md:rounded-3xl rounded-t-3xl shadow-[0_-10px_40px_rgba(188,19,254,0.3)] flex flex-col max-h-[90vh]">
+        
+        {/* Header */}
+        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-black via-purple-900/20 to-black rounded-t-3xl">
+          <h2 className="text-2xl font-black text-white flex items-center gap-3">
+            CONFIRMAR PEDIDO
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white bg-white/5 p-2 rounded-full">
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+          
+          {/* Order Summary */}
+          <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+            <h3 className="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center gap-2">
+               <ShoppingCart size={14}/> Resumen
+            </h3>
+            <div className="space-y-2 mb-4 max-h-32 overflow-y-auto pr-2">
+              {cart.map(item => (
+                <div key={item.id} className="flex justify-between text-sm">
+                  <span className="text-gray-300">{item.quantity}x {item.name}</span>
+                  <span className="text-white font-mono">${(item.price * item.quantity).toLocaleString('es-CL')}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between items-center border-t border-white/10 pt-3">
+              <span className="text-white font-bold">Total a Pagar</span>
+              <span className="text-2xl font-black text-neon-green text-shadow-glow">${total.toLocaleString('es-CL')}</span>
+            </div>
+          </div>
+
+          {/* Payment Method Selector */}
+          <div>
+            <h3 className="text-sm font-bold text-white mb-3 uppercase tracking-wide">¿Cómo vas a pagar?</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={() => setPaymentMethod('cash')}
+                className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'cash' ? 'border-neon-green bg-neon-green/10 text-white shadow-[0_0_15px_rgba(57,255,20,0.3)]' : 'border-white/10 bg-black/40 text-gray-400 hover:border-white/30'}`}
+              >
+                <DollarSign size={28} className={paymentMethod === 'cash' ? "text-neon-green" : ""} />
+                <span className="font-bold">Efectivo</span>
+              </button>
+              <button 
+                onClick={() => setPaymentMethod('transfer')}
+                className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'transfer' ? 'border-neon-blue bg-neon-blue/10 text-white shadow-[0_0_15px_rgba(4,217,255,0.3)]' : 'border-white/10 bg-black/40 text-gray-400 hover:border-white/30'}`}
+              >
+                <Wallet size={28} className={paymentMethod === 'transfer' ? "text-neon-blue" : ""} />
+                <span className="font-bold">Transferencia</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Cash Logic */}
+          {paymentMethod === 'cash' && (
+             <div className="bg-black/40 p-4 rounded-xl border border-neon-green/30 animate-fade-in">
+                <label className="text-xs text-neon-green font-bold uppercase mb-2 block">¿Con cuánto pagas? (Para el vuelto)</label>
+                <input 
+                  type="number" 
+                  placeholder="Ej: 20000" 
+                  value={cashAmount}
+                  onChange={(e) => setCashAmount(e.target.value)}
+                  className="w-full bg-dark-900 border border-white/20 rounded-lg p-3 text-white focus:border-neon-green outline-none font-mono text-lg"
+                />
+                {cashAmount && parseInt(cashAmount) < total && (
+                  <p className="text-red-400 text-xs mt-2 font-bold">⚠️ Falta plata compadre</p>
+                )}
+                {cashAmount && parseInt(cashAmount) >= total && (
+                  <p className="text-gray-300 text-xs mt-2">
+                    Vuelto estimado: <span className="font-bold text-white">${(parseInt(cashAmount) - total).toLocaleString('es-CL')}</span>
+                  </p>
+                )}
+             </div>
+          )}
+
+          {/* Transfer Logic */}
+          {paymentMethod === 'transfer' && (
+            <div className="animate-fade-in space-y-4">
+               <div className="bg-white/5 p-4 rounded-xl border border-white/10 text-xs text-gray-300 space-y-2 font-mono relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-2 opacity-10"><CreditCard size={48}/></div>
+                  <p className="flex justify-between border-b border-white/5 pb-1"><span>Banco:</span> <span className="text-white font-bold">{config.bankName}</span></p>
+                  <p className="flex justify-between border-b border-white/5 pb-1"><span>Cuenta:</span> <span className="text-white font-bold">{config.bankAccount}</span></p>
+                  <p className="flex justify-between border-b border-white/5 pb-1"><span>RUT:</span> <span className="text-white font-bold">{config.bankRut}</span></p>
+                  <p className="flex justify-between"><span>Email:</span> <span className="text-white font-bold">{config.bankEmail}</span></p>
+               </div>
+
+               <div className="space-y-2">
+                 <h4 className="text-xs font-bold text-neon-blue uppercase">Comprobante (Voucher)</h4>
+                 {!voucherPreview ? (
+                   <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/20 rounded-xl cursor-pointer hover:bg-white/5 hover:border-neon-blue transition-all group">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <Upload className="w-8 h-8 mb-2 text-gray-400 group-hover:text-neon-blue" />
+                          <p className="text-xs text-gray-400"><span className="font-semibold text-white">Click para subir foto</span></p>
+                      </div>
+                      <input type="file" className="hidden" accept="image/*" onChange={handleVoucherUpload} />
+                   </label>
+                 ) : (
+                    <div className="relative rounded-xl overflow-hidden border border-neon-blue/50 bg-black">
+                      <img src={voucherPreview} alt="Voucher" className="w-full h-40 object-contain opacity-80" />
+                      
+                      {isAnalyzing ? (
+                        <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-neon-blue z-20 backdrop-blur-sm">
+                          <Loader2 size={32} className="animate-spin mb-2" />
+                          <span className="text-xs font-bold animate-pulse">IA Analizando voucher...</span>
+                        </div>
+                      ) : voucherAnalysis ? (
+                        <div className="absolute inset-0 bg-black/90 p-4 flex flex-col justify-center animate-fade-in">
+                           <div className="flex items-center gap-2 text-neon-green mb-2">
+                              <CheckCircle size={16} /> <span className="text-xs font-bold uppercase">Leído por IA</span>
+                           </div>
+                           <p className="text-xs text-gray-300 font-mono leading-relaxed line-clamp-6">
+                              "{voucherAnalysis}"
+                           </p>
+                           <button onClick={() => setVoucherPreview(null)} className="absolute top-2 right-2 text-gray-500 hover:text-white"><X size={16}/></button>
+                        </div>
+                      ) : null}
+                    </div>
+                 )}
+               </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* Footer Actions */}
+        <div className="p-6 border-t border-white/5 bg-black/40 rounded-b-3xl">
+          <button 
+            onClick={handleSendOrder}
+            disabled={!paymentMethod || (paymentMethod === 'cash' && (!cashAmount || parseInt(cashAmount) < total))}
+            className="w-full py-4 bg-gradient-to-r from-neon-purple to-neon-blue hover:from-purple-600 hover:to-blue-600 text-white font-bold rounded-xl shadow-[0_0_30px_rgba(188,19,254,0.4)] disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2"
+          >
+            <Phone size={20} className={paymentMethod ? "animate-pulse" : ""} />
+            ENVIAR PEDIDO AHORA
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 // --- Main App Component ---
 const App: React.FC = () => {
   const [user, setUser] = useState<{ name: string, isMaster: boolean } | null>(null);
@@ -210,16 +432,13 @@ const App: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false); // NEW MODAL STATE
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showCart, setShowCart] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Voucher State
-  const [voucher, setVoucher] = useState<File | null>(null);
-  const [voucherPreview, setVoucherPreview] = useState<string | null>(null);
 
   // --- Persistence Logic ---
   const initApp = async () => {
@@ -267,36 +486,8 @@ const App: React.FC = () => {
     }));
   };
 
-  // Voucher Logic
-  const handleVoucherUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setVoucher(file);
-      setVoucherPreview(URL.createObjectURL(file));
-    }
-  };
-
-  const removeVoucher = () => {
-    setVoucher(null);
-    setVoucherPreview(null);
-  };
-
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
-  const handleCheckout = () => {
-    let message = `Hola *${storeConfig.storeName}*, soy ${user?.name}. Quiero pedir:%0A` + 
-      cart.map(item => `- ${item.quantity}x ${item.name} ($${item.price.toLocaleString('es-CL')})`).join('%0A') +
-      `%0A%0A*Total: $${cartTotal.toLocaleString('es-CL')}*`;
-    
-    if (voucher) {
-      // Instruction for user because we can't auto-attach
-      message += `%0A%0A[ ADJUNTO COMPROBANTE EN LA FOTO ]`;
-      alert("⚠️ WhatsApp Web no permite adjuntar fotos automáticamente.\n\nEl chat se abrirá ahora. POR FAVOR, PEGA (Ctrl+V) o ADJUNTA la foto de tu comprobante manualmente en el chat.");
-    }
-    
-    window.open(`https://wa.me/${storeConfig.whatsappNumber}?text=${message}`, '_blank');
-  };
 
   // --- Admin Logic ---
   const handleSaveProduct = async (product: Product) => {
@@ -662,74 +853,22 @@ const App: React.FC = () => {
               )}
             </div>
             
-            {/* Voucher and Bank Section */}
-            {cart.length > 0 && (
-              <div className="p-6 border-t border-white/10 bg-black/20 backdrop-blur-sm">
-                <h3 className="text-xs font-bold text-neon-blue mb-4 uppercase tracking-wider flex items-center gap-2">
-                  <CreditCard size={14} /> Datos Transferencia
-                </h3>
-                
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10 mb-4 text-xs text-gray-300 space-y-2 font-mono">
-                    <p className="flex justify-between border-b border-white/5 pb-1"><span>Banco:</span> <span className="text-white font-bold">{storeConfig.bankName}</span></p>
-                    <p className="flex justify-between border-b border-white/5 pb-1"><span>Cuenta:</span> <span className="text-white font-bold">{storeConfig.bankAccount}</span></p>
-                    <p className="flex justify-between border-b border-white/5 pb-1"><span>RUT:</span> <span className="text-white font-bold">{storeConfig.bankRut}</span></p>
-                    <p className="flex justify-between"><span>Email:</span> <span className="text-white font-bold">{storeConfig.bankEmail}</span></p>
-                </div>
-
-                {!voucherPreview ? (
-                    <div className="relative group">
-                        <input 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={handleVoucherUpload}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                        />
-                        <div className="border-2 border-dashed border-white/20 rounded-xl p-6 flex flex-col items-center justify-center gap-2 group-hover:border-neon-purple group-hover:bg-neon-purple/5 transition-all">
-                            <div className="bg-white/10 p-3 rounded-full group-hover:scale-110 transition-transform group-hover:bg-neon-purple/20">
-                                <Upload size={24} className="text-gray-400 group-hover:text-neon-purple" />
-                            </div>
-                            <span className="text-sm text-gray-300 font-medium group-hover:text-white">Adjuntar Comprobante</span>
-                            <span className="text-[10px] text-gray-500">Click o arrastra tu foto aquí</span>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="relative rounded-xl overflow-hidden border border-neon-green/50 group shadow-[0_0_15px_rgba(57,255,20,0.2)]">
-                        <img src={voucherPreview} alt="Comprobante" className="w-full h-32 object-cover opacity-80" />
-                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                            <button 
-                                onClick={removeVoucher}
-                                className="bg-red-500 text-white p-3 rounded-full hover:bg-red-600 transform hover:scale-110 transition-all shadow-lg"
-                            >
-                                <Trash2 size={24} />
-                            </button>
-                        </div>
-                        <div className="absolute bottom-2 left-2 bg-black/80 px-3 py-1.5 rounded-lg text-[10px] text-neon-green flex items-center gap-1.5 backdrop-blur-sm border border-neon-green/20 z-10 font-bold uppercase tracking-wide">
-                            <ImageIcon size={12} /> Voucher listo
-                        </div>
-                    </div>
-                )}
-            </div>
-            )}
-
             <div className="p-6 bg-black/60 border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] z-20 backdrop-blur-xl">
               <div className="flex justify-between items-center mb-6">
                 <span className="text-gray-400 font-medium">Total a Pagar</span>
                 <span className="text-white text-3xl font-black tracking-tight">${cartTotal.toLocaleString('es-CL')}</span>
               </div>
               <button 
-                onClick={handleCheckout}
+                onClick={() => { setShowCart(false); setShowCheckoutModal(true); }}
                 disabled={cart.length === 0}
                 className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98]
                   ${cart.length > 0 
                     ? 'bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-500 hover:to-emerald-400 text-white shadow-[0_0_20px_rgba(0,255,0,0.3)]' 
                     : 'bg-white/10 text-gray-500 cursor-not-allowed border border-white/5'}`}
               >
-                <Phone size={22} className={cart.length > 0 ? "animate-pulse" : ""} />
-                {voucher ? 'CONFIRMAR Y ENVIAR' : 'PEDIR POR WHATSAPP'}
+                <DollarSign size={22} className={cart.length > 0 ? "animate-pulse" : ""} />
+                IR A PAGAR
               </button>
-              <p className="text-center text-[10px] uppercase tracking-widest text-gray-500 mt-4">
-                 {voucher ? 'No olvides pegar la foto en WhatsApp.' : 'Coordinaremos el pago en el chat.'}
-              </p>
             </div>
           </div>
         </div>
@@ -743,6 +882,16 @@ const App: React.FC = () => {
           onSave={handleUpdateConfig} 
         />
       )}
+
+      {/* Checkout Modal (New Responsive Modal) */}
+      <CheckoutModal
+        isOpen={showCheckoutModal}
+        onClose={() => setShowCheckoutModal(false)}
+        cart={cart}
+        total={cartTotal}
+        config={storeConfig}
+        userName={user.name}
+      />
 
       {/* Admin Panel Modal */}
       <AdminPanel 
