@@ -7,18 +7,24 @@ import { analyzeVoucherImage } from './services/geminiService';
 import ProductCard from './components/ProductCard';
 import AdminPanel from './components/AdminPanel';
 import GeminiAssistant from './components/GeminiAssistant';
-import { ShoppingCart, Moon, Search, Menu, X, Phone, LogOut, Beer, Plus, Minus, Trash2, Lock, User, ArrowRight, Upload, Image as ImageIcon, CreditCard, RefreshCw, Cloud, CloudOff, Database, Settings as SettingsIcon, Save, DollarSign, Wallet, ScanLine, Loader2, CheckCircle } from 'lucide-react';
+import { ShoppingCart, Moon, Search, Menu, X, Phone, LogOut, Beer, Plus, Minus, Trash2, Lock, User, ArrowRight, Upload, Image as ImageIcon, CreditCard, RefreshCw, Cloud, CloudOff, Database, Settings as SettingsIcon, Save, DollarSign, Wallet, ScanLine, Loader2, CheckCircle, Bike, MapPin, Building2, ExternalLink } from 'lucide-react';
 
 // --- Login/Welcome Screen Component ---
-const WelcomeScreen = ({ onLogin, onAdminLogin, storeName }: { onLogin: (name: string) => void, onAdminLogin: (pass: string) => boolean, storeName: string }) => {
+const WelcomeScreen = ({ onLogin, onAdminLogin, storeName }: { onLogin: (name: string, phone: string) => void, onAdminLogin: (pass: string) => boolean, storeName: string }) => {
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [showAdminInput, setShowAdminInput] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleCustomerEnter = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim()) onLogin(name);
+    if (name.trim() && phone.trim().length >= 8) {
+      onLogin(name, phone);
+    } else {
+      setError("Ingresa nombre y teléfono válido (8 dígitos)");
+      setTimeout(() => setError(''), 3000);
+    }
   };
 
   const handleAdminEnter = (e: React.FormEvent) => {
@@ -59,25 +65,47 @@ const WelcomeScreen = ({ onLogin, onAdminLogin, storeName }: { onLogin: (name: s
         </div>
 
         {!showAdminInput ? (
-          <form onSubmit={handleCustomerEnter} className="space-y-6">
+          <form onSubmit={handleCustomerEnter} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-neon-blue ml-2 uppercase tracking-wide">Identificación</label>
+              <label className="text-xs font-bold text-neon-blue ml-2 uppercase tracking-wide">Nombre</label>
               <div className="relative group">
                 <User className="absolute left-4 top-4 text-gray-400 group-focus-within:text-neon-purple transition-colors" size={20} />
                 <input 
                   type="text" 
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Tu Nombre o Teléfono"
+                  placeholder="Tu Nombre"
                   className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-gray-500 focus:border-neon-purple focus:ring-1 focus:ring-neon-purple outline-none transition-all backdrop-blur-sm text-lg"
                   required
                 />
               </div>
             </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-neon-blue ml-2 uppercase tracking-wide">Teléfono (WhatsApp)</label>
+              <div className="relative group flex items-center bg-black/40 border border-white/10 rounded-2xl focus-within:border-neon-purple focus-within:ring-1 focus-within:ring-neon-purple transition-all backdrop-blur-sm">
+                <div className="pl-4 pr-2 border-r border-white/10 text-gray-400 font-mono text-lg flex items-center gap-1">
+                  <span>+56 9</span>
+                </div>
+                <input 
+                  type="tel" 
+                  value={phone}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    if (val.length <= 8) setPhone(val);
+                  }}
+                  placeholder="12345678"
+                  className="w-full bg-transparent border-none py-4 px-4 text-white placeholder-gray-500 outline-none text-lg font-mono"
+                  required
+                />
+              </div>
+            </div>
             
+            {error && <p className="text-red-400 text-xs text-center font-bold">{error}</p>}
+
             <button 
               type="submit"
-              className="w-full bg-gradient-to-r from-neon-purple to-fuchsia-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold py-4 rounded-2xl shadow-[0_0_30px_rgba(188,19,254,0.4)] hover:shadow-[0_0_50px_rgba(188,19,254,0.6)] transition-all transform hover:-translate-y-1 hover:scale-[1.02] flex items-center justify-center gap-2 group"
+              className="w-full bg-gradient-to-r from-neon-purple to-fuchsia-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold py-4 rounded-2xl shadow-[0_0_30px_rgba(188,19,254,0.4)] hover:shadow-[0_0_50px_rgba(188,19,254,0.6)] transition-all transform hover:-translate-y-1 hover:scale-[1.02] flex items-center justify-center gap-2 group mt-4"
             >
               Entrar a la Fiesta <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </button>
@@ -209,14 +237,14 @@ const CheckoutModal = ({
   cart, 
   total, 
   config, 
-  userName 
+  user
 }: { 
   isOpen: boolean, 
   onClose: () => void, 
   cart: CartItem[], 
   total: number, 
   config: StoreConfig, 
-  userName: string 
+  user: { name: string, phone: string } 
 }) => {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | null>(null);
   const [cashAmount, setCashAmount] = useState<string>('');
@@ -224,8 +252,62 @@ const CheckoutModal = ({
   const [voucherPreview, setVoucherPreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [voucherAnalysis, setVoucherAnalysis] = useState<string | null>(null);
+  
+  // Delivery State
+  const [isDelivery, setIsDelivery] = useState(false);
+  const [address, setAddress] = useState('');
+  const [distance, setDistance] = useState<number | null>(null);
+  const [checkingLocation, setCheckingLocation] = useState(false);
+  const [canDeliver, setCanDeliver] = useState(false);
+
+  const DELIVERY_FEE = 10000;
+  const MAX_DISTANCE_KM = 5;
+  // Mock Store Location (Plaza Baquedano, Santiago for demo)
+  const STORE_LAT = -33.4372;
+  const STORE_LNG = -70.6342;
 
   if (!isOpen) return null;
+
+  const finalTotal = total + (isDelivery && canDeliver ? DELIVERY_FEE : 0);
+
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  const handleCheckLocation = () => {
+    if (!navigator.geolocation) {
+      alert("La geolocalización no es soportada por tu navegador.");
+      return;
+    }
+    setCheckingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+        const dist = calculateDistance(STORE_LAT, STORE_LNG, userLat, userLng);
+        setDistance(dist);
+        setCheckingLocation(false);
+        if (dist <= MAX_DISTANCE_KM) {
+          setCanDeliver(true);
+        } else {
+          setCanDeliver(false);
+          alert(`Estás a ${dist.toFixed(1)}km. El delivery solo llega a ${MAX_DISTANCE_KM}km.`);
+        }
+      },
+      (error) => {
+        setCheckingLocation(false);
+        alert("Error obteniendo ubicación. Asegúrate de dar permisos.");
+        console.error(error);
+      }
+    );
+  };
 
   const handleVoucherUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -235,7 +317,6 @@ const CheckoutModal = ({
       setVoucherPreview(url);
       setVoucherAnalysis(null);
       
-      // Convert to base64 for Gemini
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64String = reader.result as string;
@@ -254,15 +335,25 @@ const CheckoutModal = ({
   };
 
   const handleSendOrder = () => {
-    let message = `Hola *${config.storeName}*, soy ${userName}.%0A%0A*MI PEDIDO:*%0A` + 
+    let message = `Hola *${config.storeName}*, soy ${user.name} (+56 9 ${user.phone}).%0A%0A*MI PEDIDO:*%0A` + 
       cart.map(item => `- ${item.quantity}x ${item.name} ($${(item.price * item.quantity).toLocaleString('es-CL')})`).join('%0A') +
-      `%0A%0A*TOTAL: $${total.toLocaleString('es-CL')}*`;
+      `%0A%0A*SUBTOTAL: $${total.toLocaleString('es-CL')}*`;
+
+    if (isDelivery) {
+        message += `%0A🛵 *DELIVERY INCLUIDO* (+ $${DELIVERY_FEE.toLocaleString('es-CL')})`;
+        message += `%0ADirección: ${address}`;
+        message += `%0ADistancia aprox: ${distance?.toFixed(1)} km`;
+    } else {
+        message += `%0A🏃‍♂️ *RETIRO EN LOCAL*`;
+    }
+
+    message += `%0A*TOTAL FINAL: $${finalTotal.toLocaleString('es-CL')}*`;
 
     if (paymentMethod === 'cash') {
       message += `%0A%0A💵 *PAGO EN EFECTIVO*`;
       if (cashAmount) {
         message += `%0APago con: $${parseInt(cashAmount).toLocaleString('es-CL')}`;
-        const change = parseInt(cashAmount) - total;
+        const change = parseInt(cashAmount) - finalTotal;
         if (change > 0) message += ` (Vuelto: $${change.toLocaleString('es-CL')})`;
       } else {
         message += `%0APago justo.`;
@@ -296,6 +387,72 @@ const CheckoutModal = ({
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
           
+          {/* User Info */}
+          <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                  <User size={20} className="text-neon-blue" />
+                  <div>
+                      <p className="text-white font-bold text-sm">{user.name}</p>
+                      <p className="text-gray-400 text-xs">+56 9 {user.phone}</p>
+                  </div>
+              </div>
+          </div>
+
+          {/* Delivery Toggle */}
+          <div className="space-y-3">
+             <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tipo de Entrega</h3>
+             <div className="grid grid-cols-2 gap-4">
+                 <button 
+                    onClick={() => setIsDelivery(false)}
+                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${!isDelivery ? 'border-neon-purple bg-neon-purple/10 text-white' : 'border-white/10 bg-black/40 text-gray-400'}`}
+                 >
+                     <Building2 size={24} />
+                     <span className="font-bold text-sm">Retiro</span>
+                 </button>
+                 <button 
+                    onClick={() => setIsDelivery(true)}
+                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${isDelivery ? 'border-neon-purple bg-neon-purple/10 text-white shadow-[0_0_15px_rgba(188,19,254,0.3)]' : 'border-white/10 bg-black/40 text-gray-400'}`}
+                 >
+                     <Bike size={24} />
+                     <span className="font-bold text-sm">Delivery (+$10k)</span>
+                 </button>
+             </div>
+
+             {isDelivery && (
+                 <div className="bg-black/40 p-4 rounded-xl border border-neon-purple/30 space-y-3 animate-fade-in">
+                     <p className="text-xs text-gray-300">Debemos verificar si estás en el radio de 5km.</p>
+                     
+                     {!canDeliver ? (
+                         <button 
+                            onClick={handleCheckLocation}
+                            disabled={checkingLocation}
+                            className="w-full py-3 bg-neon-purple/20 text-neon-purple border border-neon-purple/50 rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-neon-purple/30 transition-all"
+                         >
+                            {checkingLocation ? <Loader2 className="animate-spin" size={16}/> : <MapPin size={16} />}
+                            {checkingLocation ? "Analizando GPS..." : "Verificar Ubicación (GPS)"}
+                         </button>
+                     ) : (
+                         <div className="flex items-center gap-2 text-neon-green font-bold text-sm bg-neon-green/10 p-2 rounded-lg border border-neon-green/30">
+                             <CheckCircle size={16} /> ¡Cobertura Validada! ({distance?.toFixed(1)} km)
+                         </div>
+                     )}
+
+                     {canDeliver && (
+                        <div>
+                             <label className="text-xs font-bold text-white uppercase mb-1 block">Dirección Exacta</label>
+                             <input 
+                                type="text" 
+                                value={address}
+                                onChange={(e) => setAddress(e.target.value)}
+                                placeholder="Calle, Número, Depto..."
+                                className="w-full bg-dark-900 border border-white/20 rounded-lg p-3 text-white outline-none"
+                             />
+                        </div>
+                     )}
+                 </div>
+             )}
+          </div>
+
           {/* Order Summary */}
           <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
             <h3 className="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center gap-2">
@@ -308,10 +465,16 @@ const CheckoutModal = ({
                   <span className="text-white font-mono">${(item.price * item.quantity).toLocaleString('es-CL')}</span>
                 </div>
               ))}
+              {isDelivery && canDeliver && (
+                  <div className="flex justify-between text-sm pt-2 border-t border-white/5 text-neon-purple">
+                    <span className="font-bold">Delivery Express</span>
+                    <span className="font-mono">+${DELIVERY_FEE.toLocaleString('es-CL')}</span>
+                  </div>
+              )}
             </div>
             <div className="flex justify-between items-center border-t border-white/10 pt-3">
               <span className="text-white font-bold">Total a Pagar</span>
-              <span className="text-2xl font-black text-neon-green text-shadow-glow">${total.toLocaleString('es-CL')}</span>
+              <span className="text-2xl font-black text-neon-green text-shadow-glow">${finalTotal.toLocaleString('es-CL')}</span>
             </div>
           </div>
 
@@ -347,12 +510,12 @@ const CheckoutModal = ({
                   onChange={(e) => setCashAmount(e.target.value)}
                   className="w-full bg-dark-900 border border-white/20 rounded-lg p-3 text-white focus:border-neon-green outline-none font-mono text-lg"
                 />
-                {cashAmount && parseInt(cashAmount) < total && (
+                {cashAmount && parseInt(cashAmount) < finalTotal && (
                   <p className="text-red-400 text-xs mt-2 font-bold">⚠️ Falta plata compadre</p>
                 )}
-                {cashAmount && parseInt(cashAmount) >= total && (
+                {cashAmount && parseInt(cashAmount) >= finalTotal && (
                   <p className="text-gray-300 text-xs mt-2">
-                    Vuelto estimado: <span className="font-bold text-white">${(parseInt(cashAmount) - total).toLocaleString('es-CL')}</span>
+                    Vuelto estimado: <span className="font-bold text-white">${(parseInt(cashAmount) - finalTotal).toLocaleString('es-CL')}</span>
                   </p>
                 )}
              </div>
@@ -386,15 +549,15 @@ const CheckoutModal = ({
                       {isAnalyzing ? (
                         <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-neon-blue z-20 backdrop-blur-sm">
                           <Loader2 size={32} className="animate-spin mb-2" />
-                          <span className="text-xs font-bold animate-pulse">IA Analizando voucher...</span>
+                          <span className="text-xs font-bold animate-pulse">IA Analizando y validando RUT...</span>
                         </div>
                       ) : voucherAnalysis ? (
-                        <div className="absolute inset-0 bg-black/90 p-4 flex flex-col justify-center animate-fade-in">
-                           <div className="flex items-center gap-2 text-neon-green mb-2">
-                              <CheckCircle size={16} /> <span className="text-xs font-bold uppercase">Leído por IA</span>
+                        <div className="absolute inset-0 bg-black/90 p-4 flex flex-col justify-center animate-fade-in overflow-y-auto">
+                           <div className="flex items-center gap-2 text-neon-green mb-2 sticky top-0 bg-black/90 pb-2">
+                              <CheckCircle size={16} /> <span className="text-xs font-bold uppercase">Análisis Completo</span>
                            </div>
-                           <p className="text-xs text-gray-300 font-mono leading-relaxed line-clamp-6">
-                              "{voucherAnalysis}"
+                           <p className="text-xs text-gray-300 font-mono leading-relaxed whitespace-pre-line">
+                              {voucherAnalysis}
                            </p>
                            <button onClick={() => setVoucherPreview(null)} className="absolute top-2 right-2 text-gray-500 hover:text-white"><X size={16}/></button>
                         </div>
@@ -411,7 +574,12 @@ const CheckoutModal = ({
         <div className="p-6 border-t border-white/5 bg-black/40 rounded-b-3xl">
           <button 
             onClick={handleSendOrder}
-            disabled={!paymentMethod || (paymentMethod === 'cash' && (!cashAmount || parseInt(cashAmount) < total))}
+            disabled={
+                !paymentMethod || 
+                (paymentMethod === 'cash' && (!cashAmount || parseInt(cashAmount) < finalTotal)) ||
+                (isDelivery && !canDeliver) ||
+                (isDelivery && canDeliver && !address)
+            }
             className="w-full py-4 bg-gradient-to-r from-neon-purple to-neon-blue hover:from-purple-600 hover:to-blue-600 text-white font-bold rounded-xl shadow-[0_0_30px_rgba(188,19,254,0.4)] disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2"
           >
             <Phone size={20} className={paymentMethod ? "animate-pulse" : ""} />
@@ -426,7 +594,7 @@ const CheckoutModal = ({
 
 // --- Main App Component ---
 const App: React.FC = () => {
-  const [user, setUser] = useState<{ name: string, isMaster: boolean } | null>(null);
+  const [user, setUser] = useState<{ name: string, phone: string, isMaster: boolean } | null>(null);
   const [storeConfig, setStoreConfig] = useState<StoreConfig>(DEFAULT_STORE_CONFIG);
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -525,7 +693,7 @@ const App: React.FC = () => {
   const handleAdminLoginAttempt = (pass: string) => {
     const correctPass = storeConfig.adminPassword || "1234";
     if (pass === correctPass) {
-      setUser({ name: 'Master', isMaster: true });
+      setUser({ name: 'Master', phone: '00000000', isMaster: true });
       return true;
     }
     return false;
@@ -544,7 +712,7 @@ const App: React.FC = () => {
   if (!user) {
     return (
       <WelcomeScreen 
-        onLogin={(name) => setUser({ name, isMaster: false })}
+        onLogin={(name, phone) => setUser({ name, phone, isMaster: false })}
         onAdminLogin={handleAdminLoginAttempt}
         storeName={storeConfig.storeName}
       />
@@ -680,7 +848,17 @@ const App: React.FC = () => {
               </button>
             </div>
             
-            <div className="flex gap-2 w-full md:w-auto overflow-x-auto no-scrollbar">
+            <div className="flex gap-2 w-full md:w-auto overflow-x-auto no-scrollbar items-center">
+              {/* BANCO ESTADO BUTTON */}
+              <a 
+                href="https://www.bancoestado.cl" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="bg-orange-600/20 hover:bg-orange-600 text-orange-400 hover:text-white border border-orange-600/30 font-bold py-2 px-3 rounded-lg flex items-center gap-2 text-xs transition-all whitespace-nowrap"
+              >
+                <ExternalLink size={14} /> BancoEstado
+              </a>
+
               <button
                 onClick={() => setShowSettingsModal(true)}
                 className="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold py-2 px-3 rounded-lg flex items-center gap-2 text-xs transition-all whitespace-nowrap"
@@ -890,7 +1068,7 @@ const App: React.FC = () => {
         cart={cart}
         total={cartTotal}
         config={storeConfig}
-        userName={user.name}
+        user={user}
       />
 
       {/* Admin Panel Modal */}

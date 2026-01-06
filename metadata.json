@@ -1,5 +1,9 @@
 {
   "name": "Salvando La Noche",
   "description": "Tu botillería virtual nocturna. Fonocopete, licores, cigarros y más. Gestiona tu stock y atiende a tus clientes con ayuda de IA.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
 }

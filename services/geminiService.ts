@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Chat } from "@google/genai";
 
 let chatSession: Chat | null = null;
@@ -70,11 +69,40 @@ export const generateImagePrompt = async (productName: string): Promise<string> 
   }
 };
 
+// --- RUT VALIDATION LOGIC (Modulo 11) ---
+const validateRutChile = (rut: string): boolean => {
+  if (!rut || rut.trim().length < 3) return false;
+  
+  // Limpiar el RUT de puntos y guiones
+  const cleanRut = rut.replace(/[^0-9kK]/g, '');
+  if (cleanRut.length < 2) return false;
+
+  const body = cleanRut.slice(0, -1);
+  const dv = cleanRut.slice(-1).toUpperCase();
+
+  let sum = 0;
+  let multiplier = 2;
+
+  for (let i = body.length - 1; i >= 0; i--) {
+    sum += parseInt(body.charAt(i)) * multiplier;
+    multiplier = multiplier === 7 ? 2 : multiplier + 1;
+  }
+
+  const expectedDv = 11 - (sum % 11);
+  let calculatedDv = '';
+  
+  if (expectedDv === 11) calculatedDv = '0';
+  else if (expectedDv === 10) calculatedDv = 'K';
+  else calculatedDv = expectedDv.toString();
+
+  return calculatedDv === dv;
+};
+
 export const analyzeVoucherImage = async (base64Image: string): Promise<string> => {
   try {
     const ai = new GoogleGenAI({ apiKey: getApiKey() });
     
-    // Clean base64 string if it has the data prefix
+    // Clean base64 string
     const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
 
     const response = await ai.models.generateContent({
@@ -88,13 +116,34 @@ export const analyzeVoucherImage = async (base64Image: string): Promise<string> 
             }
           },
           {
-            text: "Analiza este comprobante de transferencia bancaria. Extrae los siguientes datos y formatéalos en un texto muy breve y claro para enviar por WhatsApp: Banco de origen, Banco de destino, Monto transferido, Fecha/Hora y Número de operación o Folio. Si no parece un comprobante, dilo. Formato ejemplo: '✅ Transferencia Detectada: Banco Estado -> Santander. Monto: $10.000. Fecha: 12/10. Folio: 12345'."
+            text: "Analiza este comprobante de transferencia bancaria. Extrae TODOS los datos posibles: Banco origen, Banco destino, Monto, Fecha, Folio y especialmente el RUT del ordenante (quien transfiere). Formato de salida: Texto plano resumiendo los datos."
           }
         ]
       }
     });
 
-    return response.text || "No pude leer el comprobante automáticamente.";
+    const text = response.text || "No pude leer el comprobante.";
+
+    // Intentar encontrar y validar RUTs en la respuesta de la IA
+    // Regex simple para encontrar patrones parecidos a RUTs (12.345.678-9 o 12345678-9)
+    const rutRegex = /(\d{1,2}\.?\d{3}\.?\d{3}-[\dkK])/g;
+    const foundRuts = text.match(rutRegex);
+    
+    let validationMsg = "";
+    
+    if (foundRuts && foundRuts.length > 0) {
+      const validRuts = foundRuts.filter(r => validateRutChile(r));
+      if (validRuts.length > 0) {
+        validationMsg = `%0A✅ RUT Valido (Mod 11): ${validRuts[0]}`;
+      } else {
+        validationMsg = `%0A⚠️ RUT Detectado pero Inválido: ${foundRuts[0]}`;
+      }
+    } else {
+      validationMsg = "%0A⚠️ No detecté un RUT visible en el texto extraído.";
+    }
+
+    return text + validationMsg;
+
   } catch (error) {
     console.error("Error analyzing voucher:", error);
     return "Error al analizar la imagen con IA.";
