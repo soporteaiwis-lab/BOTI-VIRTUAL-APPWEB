@@ -262,9 +262,10 @@ const CheckoutModal = ({
 
   const DELIVERY_FEE = 10000;
   const MAX_DISTANCE_KM = 5;
-  // Mock Store Location (Plaza Baquedano, Santiago for demo)
-  const STORE_LAT = -33.4372;
-  const STORE_LNG = -70.6342;
+  
+  // Coordenadas La Legua, San Joaquín, Santiago
+  const STORE_LAT = -33.472695;
+  const STORE_LNG = -70.627329;
 
   if (!isOpen) return null;
 
@@ -282,6 +283,11 @@ const CheckoutModal = ({
   };
 
   const handleCheckLocation = () => {
+    if (!address.trim()) {
+        alert("Por favor escribe tu dirección primero.");
+        return;
+    }
+
     if (!navigator.geolocation) {
       alert("La geolocalización no es soportada por tu navegador.");
       return;
@@ -298,12 +304,12 @@ const CheckoutModal = ({
           setCanDeliver(true);
         } else {
           setCanDeliver(false);
-          alert(`Estás a ${dist.toFixed(1)}km. El delivery solo llega a ${MAX_DISTANCE_KM}km.`);
+          alert(`Estás a ${dist.toFixed(1)}km de La Legua. El delivery solo cubre ${MAX_DISTANCE_KM}km.`);
         }
       },
       (error) => {
         setCheckingLocation(false);
-        alert("Error obteniendo ubicación. Asegúrate de dar permisos.");
+        alert("Error obteniendo ubicación GPS. Asegúrate de dar permisos.");
         console.error(error);
       }
     );
@@ -335,39 +341,58 @@ const CheckoutModal = ({
   };
 
   const handleSendOrder = () => {
-    let message = `Hola *${config.storeName}*, soy ${user.name} (+56 9 ${user.phone}).%0A%0A*MI PEDIDO:*%0A` + 
-      cart.map(item => `- ${item.quantity}x ${item.name} ($${(item.price * item.quantity).toLocaleString('es-CL')})`).join('%0A') +
-      `%0A%0A*SUBTOTAL: $${total.toLocaleString('es-CL')}*`;
+    // Construcción del mensaje con formato seguro
+    let lines = [];
+    lines.push(`Hola *${config.storeName}*, soy ${user.name} (+56 9 ${user.phone}).`);
+    lines.push("");
+    lines.push("*MI PEDIDO:*");
+    cart.forEach(item => {
+        lines.push(`- ${item.quantity}x ${item.name} ($${(item.price * item.quantity).toLocaleString('es-CL')})`);
+    });
+    
+    lines.push("");
+    lines.push(`*SUBTOTAL: $${total.toLocaleString('es-CL')}*`);
 
     if (isDelivery) {
-        message += `%0A🛵 *DELIVERY INCLUIDO* (+ $${DELIVERY_FEE.toLocaleString('es-CL')})`;
-        message += `%0ADirección: ${address}`;
-        message += `%0ADistancia aprox: ${distance?.toFixed(1)} km`;
+        lines.push("");
+        lines.push(`🛵 *DELIVERY INCLUIDO* (+ $${DELIVERY_FEE.toLocaleString('es-CL')})`);
+        lines.push(`Dirección: ${address}`);
+        lines.push(`Distancia val. (La Legua): ${distance?.toFixed(1)} km`);
     } else {
-        message += `%0A🏃‍♂️ *RETIRO EN LOCAL*`;
+        lines.push("");
+        lines.push(`🏃‍♂️ *RETIRO EN LOCAL*`);
     }
 
-    message += `%0A*TOTAL FINAL: $${finalTotal.toLocaleString('es-CL')}*`;
+    lines.push(`*TOTAL FINAL: $${finalTotal.toLocaleString('es-CL')}*`);
 
     if (paymentMethod === 'cash') {
-      message += `%0A%0A💵 *PAGO EN EFECTIVO*`;
+      lines.push("");
+      lines.push(`💵 *PAGO EN EFECTIVO*`);
       if (cashAmount) {
-        message += `%0APago con: $${parseInt(cashAmount).toLocaleString('es-CL')}`;
+        lines.push(`Pago con: $${parseInt(cashAmount).toLocaleString('es-CL')}`);
         const change = parseInt(cashAmount) - finalTotal;
-        if (change > 0) message += ` (Vuelto: $${change.toLocaleString('es-CL')})`;
+        if (change > 0) lines.push(`(Vuelto: $${change.toLocaleString('es-CL')})`);
       } else {
-        message += `%0APago justo.`;
+        lines.push(`Pago justo.`);
       }
     } else if (paymentMethod === 'transfer') {
-      message += `%0A%0A📲 *TRANSFERENCIA*`;
+      lines.push("");
+      lines.push(`📲 *TRANSFERENCIA*`);
       if (voucherAnalysis) {
-        message += `%0A${encodeURIComponent(voucherAnalysis)}`;
+        // Limpiamos el análisis de saltos de línea extraños para la URL
+        lines.push("--- Datos Voucher ---");
+        lines.push(voucherAnalysis);
       } else {
-        message += `%0A(Adjuntaré comprobante en el chat)`;
+        lines.push(`(Adjuntaré comprobante en el chat)`);
       }
     }
 
-    window.open(`https://wa.me/${config.whatsappNumber}?text=${message}`, '_blank');
+    // Unir todo y codificar
+    const messageBody = lines.join("\n");
+    const encodedMessage = encodeURIComponent(messageBody);
+    const whatsappUrl = `https://wa.me/${config.whatsappNumber}?text=${encodedMessage}`;
+
+    window.open(whatsappUrl, '_blank');
     onClose();
   };
 
@@ -420,7 +445,18 @@ const CheckoutModal = ({
 
              {isDelivery && (
                  <div className="bg-black/40 p-4 rounded-xl border border-neon-purple/30 space-y-3 animate-fade-in">
-                     <p className="text-xs text-gray-300">Debemos verificar si estás en el radio de 5km.</p>
+                     <div>
+                         <label className="text-xs font-bold text-white uppercase mb-1 block">Dirección Exacta</label>
+                         <input 
+                            type="text" 
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
+                            placeholder="Calle, Número, Depto, Comuna..."
+                            className="w-full bg-dark-900 border border-white/20 rounded-lg p-3 text-white outline-none focus:border-neon-purple transition-colors"
+                         />
+                     </div>
+                     
+                     <p className="text-xs text-gray-400">Verificando cobertura en La Legua (Radio 5km)</p>
                      
                      {!canDeliver ? (
                          <button 
@@ -429,25 +465,12 @@ const CheckoutModal = ({
                             className="w-full py-3 bg-neon-purple/20 text-neon-purple border border-neon-purple/50 rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-neon-purple/30 transition-all"
                          >
                             {checkingLocation ? <Loader2 className="animate-spin" size={16}/> : <MapPin size={16} />}
-                            {checkingLocation ? "Analizando GPS..." : "Verificar Ubicación (GPS)"}
+                            {checkingLocation ? "Calculando distancia..." : "Validar Cobertura (GPS)"}
                          </button>
                      ) : (
                          <div className="flex items-center gap-2 text-neon-green font-bold text-sm bg-neon-green/10 p-2 rounded-lg border border-neon-green/30">
-                             <CheckCircle size={16} /> ¡Cobertura Validada! ({distance?.toFixed(1)} km)
+                             <CheckCircle size={16} /> ¡Llegamos! ({distance?.toFixed(1)} km)
                          </div>
-                     )}
-
-                     {canDeliver && (
-                        <div>
-                             <label className="text-xs font-bold text-white uppercase mb-1 block">Dirección Exacta</label>
-                             <input 
-                                type="text" 
-                                value={address}
-                                onChange={(e) => setAddress(e.target.value)}
-                                placeholder="Calle, Número, Depto..."
-                                className="w-full bg-dark-900 border border-white/20 rounded-lg p-3 text-white outline-none"
-                             />
-                        </div>
                      )}
                  </div>
              )}
@@ -578,7 +601,7 @@ const CheckoutModal = ({
                 !paymentMethod || 
                 (paymentMethod === 'cash' && (!cashAmount || parseInt(cashAmount) < finalTotal)) ||
                 (isDelivery && !canDeliver) ||
-                (isDelivery && canDeliver && !address)
+                (isDelivery && canDeliver && !address.trim())
             }
             className="w-full py-4 bg-gradient-to-r from-neon-purple to-neon-blue hover:from-purple-600 hover:to-blue-600 text-white font-bold rounded-xl shadow-[0_0_30px_rgba(188,19,254,0.4)] disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2"
           >
