@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquare, Send, X, Bot, Sparkles } from 'lucide-react';
+import { MessageSquare, Send, X, Bot, Sparkles, User } from 'lucide-react';
 import { ChatMessage } from '../types';
 import { sendMessageToGemini } from '../services/geminiService';
 
 const GeminiAssistant: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'model', text: '¡Hola! Soy tu Boti-Amigo 🤖. ¿Qué necesitas para el carrete de hoy? Te puedo recomendar tragos o armar tu pedido.', timestamp: Date.now() }
+    { role: 'model', text: '¡Hola! 🤖 Soy el Boti-Amigo. ¿Buscas recomendaciones, recetas de tragos o precios? ¡Pregúntame!', timestamp: Date.now() }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -49,49 +49,49 @@ const GeminiAssistant: React.FC = () => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-neon-purple to-pink-600 text-white p-4 rounded-full shadow-[0_0_20px_rgba(188,19,254,0.5)] hover:scale-110 transition-transform duration-300 group"
+          className="fixed bottom-6 right-6 z-40 bg-gradient-to-tr from-neon-purple to-pink-600 text-white p-4 rounded-full shadow-[0_0_20px_rgba(188,19,254,0.6)] hover:scale-110 transition-transform duration-300 group border-2 border-white/20"
         >
-          <Bot size={28} className="group-hover:rotate-12 transition-transform" />
-          <span className="absolute -top-1 -right-1 flex h-3 w-3">
+          <Bot size={32} className="group-hover:rotate-12 transition-transform drop-shadow-md" />
+          <span className="absolute -top-1 -right-1 flex h-4 w-4">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-green opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-neon-green"></span>
+            <span className="relative inline-flex rounded-full h-4 w-4 bg-neon-green border-2 border-dark-900"></span>
           </span>
         </button>
       )}
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[90vw] md:w-96 h-[500px] flex flex-col bg-dark-800 border border-dark-700 rounded-2xl shadow-2xl overflow-hidden font-sans">
+        <div className="fixed bottom-6 right-6 z-50 w-[90vw] md:w-[400px] h-[550px] flex flex-col bg-dark-900/90 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden font-sans animate-fade-in-up">
           {/* Header */}
-          <div className="bg-gradient-to-r from-neon-purple to-pink-600 p-4 flex justify-between items-center">
+          <div className="bg-gradient-to-r from-neon-purple/90 to-pink-600/90 p-4 flex justify-between items-center backdrop-blur-sm">
             <div className="flex items-center gap-3">
-              <div className="bg-white/20 p-2 rounded-full">
+              <div className="bg-white/20 p-2 rounded-full border border-white/20">
                 <Bot className="text-white" size={20} />
               </div>
               <div>
-                <h3 className="text-white font-bold text-sm">Asistente de Carrete</h3>
-                <p className="text-white/80 text-xs flex items-center gap-1">
+                <h3 className="text-white font-bold text-sm tracking-wide">Asistente de Carrete</h3>
+                <p className="text-white/80 text-[10px] flex items-center gap-1 uppercase tracking-wider font-semibold">
                   <Sparkles size={10} /> Powered by Gemini
                 </p>
               </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white transition-colors">
-              <X size={20} />
+            <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white transition-colors bg-black/20 hover:bg-black/40 rounded-full p-1.5">
+              <X size={18} />
             </button>
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-dark-900/50">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-black/20">
             {messages.map((msg, idx) => (
               <div
                 key={idx}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[80%] p-3 rounded-2xl text-sm leading-relaxed ${
+                  className={`max-w-[85%] p-3.5 rounded-2xl text-sm leading-relaxed shadow-lg ${
                     msg.role === 'user'
-                      ? 'bg-neon-purple text-white rounded-br-none'
-                      : 'bg-dark-700 text-gray-200 rounded-bl-none border border-dark-600'
+                      ? 'bg-neon-purple text-white rounded-br-sm'
+                      : 'bg-dark-700/80 text-gray-100 rounded-bl-sm border border-white/5 backdrop-blur-sm'
                   }`}
                 >
                   {msg.text}
@@ -100,10 +100,11 @@ const GeminiAssistant: React.FC = () => {
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-dark-700 text-gray-400 p-3 rounded-2xl rounded-bl-none text-xs flex items-center gap-2">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                <div className="bg-dark-700/80 border border-white/5 text-gray-400 p-4 rounded-2xl rounded-bl-sm text-xs flex items-center gap-2">
+                  <span className="text-xs font-semibold mr-1">Pensando</span>
+                  <div className="w-1.5 h-1.5 bg-neon-blue rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-1.5 h-1.5 bg-neon-purple rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-1.5 h-1.5 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                 </div>
               </div>
             )}
@@ -111,21 +112,21 @@ const GeminiAssistant: React.FC = () => {
           </div>
 
           {/* Input Area */}
-          <div className="p-3 bg-dark-800 border-t border-dark-700 flex gap-2">
+          <div className="p-4 bg-dark-800/80 border-t border-white/5 flex gap-2">
             <input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder="Ej: ¿Qué trago recomiendas para..."
-              className="flex-1 bg-dark-900 text-white rounded-full px-4 py-2 text-sm border border-dark-600 focus:border-neon-purple outline-none focus:ring-1 focus:ring-neon-purple transition-all"
+              placeholder="Pregunta por un trago..."
+              className="flex-1 bg-black/40 text-white rounded-xl px-4 py-3 text-sm border border-white/10 focus:border-neon-purple outline-none focus:ring-1 focus:ring-neon-purple transition-all placeholder-gray-500"
             />
             <button
               onClick={handleSend}
               disabled={isLoading || !inputValue.trim()}
-              className="bg-neon-purple text-white p-2.5 rounded-full hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="bg-neon-purple text-white p-3 rounded-xl hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-purple-900/50"
             >
-              <Send size={18} />
+              <Send size={20} />
             </button>
           </div>
         </div>
