@@ -4,7 +4,7 @@ import { Product, CartItem, Category } from './types';
 import ProductCard from './components/ProductCard';
 import AdminPanel from './components/AdminPanel';
 import GeminiAssistant from './components/GeminiAssistant';
-import { ShoppingCart, Moon, Search, Menu, X, Phone, LogOut, Beer, Plus, Minus, Trash2, Lock, User, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Moon, Search, Menu, X, Phone, LogOut, Beer, Plus, Minus, Trash2, Lock, User, ArrowRight, Upload, Image as ImageIcon, CreditCard } from 'lucide-react';
 
 // --- Login/Welcome Screen Component ---
 const WelcomeScreen = ({ onLogin, onAdminLogin }: { onLogin: (name: string) => void, onAdminLogin: () => void }) => {
@@ -143,6 +143,10 @@ const App: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Voucher State
+  const [voucher, setVoucher] = useState<File | null>(null);
+  const [voucherPreview, setVoucherPreview] = useState<string | null>(null);
+
   // --- Cart Logic ---
   const addToCart = (product: Product) => {
     setCart(prev => {
@@ -168,13 +172,31 @@ const App: React.FC = () => {
     }));
   };
 
+  // Voucher Logic
+  const handleVoucherUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setVoucher(file);
+      setVoucherPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const removeVoucher = () => {
+    setVoucher(null);
+    setVoucherPreview(null);
+  };
+
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleCheckout = () => {
-    const message = `Hola *${APP_NAME}*, soy ${user?.name}. Quiero pedir:%0A` + 
+    let message = `Hola *${APP_NAME}*, soy ${user?.name}. Quiero pedir:%0A` + 
       cart.map(item => `- ${item.quantity}x ${item.name} ($${item.price.toLocaleString('es-CL')})`).join('%0A') +
       `%0A%0A*Total: $${cartTotal.toLocaleString('es-CL')}*`;
+    
+    if (voucher) {
+      message += `%0A%0A📎 *Comprobante de Transferencia:*%0AAdjunto imagen a continuación.`;
+    }
     
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, '_blank');
   };
@@ -485,6 +507,55 @@ const App: React.FC = () => {
                 ))
               )}
             </div>
+            
+            {/* Voucher and Bank Section */}
+            {cart.length > 0 && (
+              <div className="p-6 border-t border-dark-700 bg-dark-900/50">
+                <h3 className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider flex items-center gap-2">
+                  <CreditCard size={14} /> Datos Transferencia
+                </h3>
+                
+                <div className="bg-dark-900 p-3 rounded-xl border border-white/10 mb-4 text-xs text-gray-400 space-y-1">
+                    <p className="flex justify-between"><span>Banco:</span> <span className="text-white font-medium">Estado</span></p>
+                    <p className="flex justify-between"><span>Cuenta RUT:</span> <span className="text-white font-medium">12.345.678-9</span></p>
+                    <p className="flex justify-between"><span>Nombre:</span> <span className="text-white font-medium">Salvando La Noche SpA</span></p>
+                    <p className="flex justify-between"><span>Email:</span> <span className="text-white font-medium">pagos@salvando.cl</span></p>
+                </div>
+
+                {!voucherPreview ? (
+                    <div className="relative">
+                        <input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleVoucherUpload}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        <div className="border-2 border-dashed border-dark-600 rounded-xl p-4 flex flex-col items-center justify-center gap-2 hover:border-neon-purple hover:bg-neon-purple/5 transition-all group">
+                            <div className="bg-dark-800 p-2 rounded-full group-hover:scale-110 transition-transform">
+                                <Upload size={20} className="text-neon-purple" />
+                            </div>
+                            <span className="text-sm text-gray-300 font-medium group-hover:text-white">Adjuntar Comprobante</span>
+                            <span className="text-[10px] text-gray-500">Click o arrastra tu foto aquí</span>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="relative rounded-xl overflow-hidden border border-neon-green/30 group">
+                        <img src={voucherPreview} alt="Comprobante" className="w-full h-32 object-cover opacity-80" />
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                            <button 
+                                onClick={removeVoucher}
+                                className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transform hover:scale-110 transition-all"
+                            >
+                                <Trash2 size={20} />
+                            </button>
+                        </div>
+                        <div className="absolute bottom-2 left-2 bg-black/80 px-2 py-1 rounded text-[10px] text-neon-green flex items-center gap-1 backdrop-blur-sm border border-neon-green/20 z-10">
+                            <ImageIcon size={10} /> Voucher cargado
+                        </div>
+                    </div>
+                )}
+            </div>
+            )}
 
             <div className="p-6 bg-dark-900 border-t border-dark-700 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-20">
               <div className="flex justify-between items-center mb-6">
@@ -500,10 +571,10 @@ const App: React.FC = () => {
                     : 'bg-dark-700 text-gray-500 cursor-not-allowed'}`}
               >
                 <Phone size={22} />
-                Pedir por WhatsApp
+                {voucher ? 'Enviar Pedido y Voucher' : 'Pedir por WhatsApp'}
               </button>
               <p className="text-center text-[10px] uppercase tracking-widest text-gray-500 mt-4">
-                Pago y entrega coordinados directo con el staff
+                 {voucher ? 'Se abrirá WhatsApp. Recuerda enviar la foto.' : 'Coordina pago y entrega en el chat.'}
               </p>
             </div>
           </div>
