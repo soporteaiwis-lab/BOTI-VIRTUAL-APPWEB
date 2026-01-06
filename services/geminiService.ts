@@ -134,12 +134,12 @@ export const analyzeVoucherImage = async (base64Image: string): Promise<string> 
     if (foundRuts && foundRuts.length > 0) {
       const validRuts = foundRuts.filter(r => validateRutChile(r));
       if (validRuts.length > 0) {
-        validationMsg = `%0A✅ RUT Valido (Mod 11): ${validRuts[0]}`;
+        validationMsg = ` [RUT Valido: ${validRuts[0]}]`;
       } else {
-        validationMsg = `%0A⚠️ RUT Detectado pero Inválido: ${foundRuts[0]}`;
+        validationMsg = ` [RUT Detectado pero Inválido]`;
       }
     } else {
-      validationMsg = "%0A⚠️ No detecté un RUT visible en el texto extraído.";
+      validationMsg = " [Sin RUT visible]";
     }
 
     return text + validationMsg;
@@ -147,5 +147,41 @@ export const analyzeVoucherImage = async (base64Image: string): Promise<string> 
   } catch (error) {
     console.error("Error analyzing voucher:", error);
     return "Error al analizar la imagen con IA.";
+  }
+};
+
+export const prepareOrderMessage = async (orderDetails: any): Promise<string> => {
+  try {
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
+    
+    const prompt = `
+    Act as a sales assistant for "Salvando La Noche".
+    Take the following raw JSON order data and format it into a CLEAN, ATTRACTIVE WhatsApp message string ready to be sent to the store owner.
+    
+    DATA:
+    ${JSON.stringify(orderDetails)}
+
+    INSTRUCTIONS:
+    1. Start with "Hola *${orderDetails.storeName}*! Nuevo Pedido 🛒"
+    2. Customer info: Name and Phone.
+    3. List items clearly with bullet points.
+    4. Show Total Price in CLP format ($X.XXX).
+    5. Delivery Method: Clearly state if it's Delivery (include Address and validated distance) or Pickup.
+    6. Payment Method: 
+       - If Transfer: Include the "voucherAnalysis" text summary nicely formatted.
+       - If Cash: Show amount and change (vuelto).
+    7. Use emojis relevant to nightlife/drinks.
+    8. NO Markdown code blocks. Just the plain text ready for WhatsApp URL.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt
+    });
+
+    return response.text || "Error generando mensaje.";
+  } catch (error) {
+    console.error("Error preparing message:", error);
+    return "Hola, envío mi pedido (Error al generar formato IA).";
   }
 };

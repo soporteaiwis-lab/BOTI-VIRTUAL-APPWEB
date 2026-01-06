@@ -3,7 +3,7 @@ import { Product, CartItem, Category, StoreConfig } from './types';
 import { DEFAULT_STORE_CONFIG } from './constants';
 import { loadProductsFromStorage, saveProductToStorage, deleteProductFromStorage, resetDatabase, loadSettingsFromStorage, saveSettingsToStorage } from './services/storageService';
 import { isCloudActive, clearFirebaseConfig } from './services/firebase';
-import { analyzeVoucherImage } from './services/geminiService';
+import { analyzeVoucherImage, prepareOrderMessage } from './services/geminiService';
 import ProductCard from './components/ProductCard';
 import AdminPanel from './components/AdminPanel';
 import GeminiAssistant from './components/GeminiAssistant';
@@ -252,6 +252,7 @@ const CheckoutModal = ({
   const [voucherPreview, setVoucherPreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [voucherAnalysis, setVoucherAnalysis] = useState<string | null>(null);
+  const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
   
   // Delivery State
   const [isDelivery, setIsDelivery] = useState(false);
@@ -340,60 +341,43 @@ const CheckoutModal = ({
     }
   };
 
-  const handleSendOrder = () => {
-    // Construcción del mensaje con formato seguro
-    let lines = [];
-    lines.push(`Hola *${config.storeName}*, soy ${user.name} (+56 9 ${user.phone}).`);
-    lines.push("");
-    lines.push("*MI PEDIDO:*");
-    cart.forEach(item => {
-        lines.push(`- ${item.quantity}x ${item.name} ($${(item.price * item.quantity).toLocaleString('es-CL')})`);
-    });
-    
-    lines.push("");
-    lines.push(`*SUBTOTAL: $${total.toLocaleString('es-CL')}*`);
+  const handleSendOrder = async () => {
+    setIsGeneratingMessage(true);
 
-    if (isDelivery) {
-        lines.push("");
-        lines.push(`🛵 *DELIVERY INCLUIDO* (+ $${DELIVERY_FEE.toLocaleString('es-CL')})`);
-        lines.push(`Dirección: ${address}`);
-        lines.push(`Distancia val. (La Legua): ${distance?.toFixed(1)} km`);
-    } else {
-        lines.push("");
-        lines.push(`🏃‍♂️ *RETIRO EN LOCAL*`);
+    const orderData = {
+        storeName: config.storeName,
+        customerName: user.name,
+        customerPhone: user.phone,
+        items: cart.map(i => `${i.quantity}x ${i.name} ($${i.price})`),
+        subtotal: total,
+        isDelivery,
+        deliveryFee: isDelivery ? DELIVERY_FEE : 0,
+        address: isDelivery ? address : 'Retiro en Local',
+        distance: isDelivery ? `${distance?.toFixed(1)}km` : 'N/A',
+        total: finalTotal,
+        paymentMethod,
+        cashGiven: cashAmount,
+        voucherAnalysis: voucherAnalysis
+    };
+
+    try {
+        // 1. Usar IA para redactar un mensaje limpio
+        const formattedMessage = await prepareOrderMessage(orderData);
+        
+        // 2. Limpiar el número de destino (quitar +, espacios, guiones)
+        const cleanStoreNumber = config.whatsappNumber.replace(/\D/g, '');
+        
+        // 3. Crear el link
+        const whatsappUrl = `https://wa.me/${cleanStoreNumber}?text=${encodeURIComponent(formattedMessage)}`;
+        
+        window.open(whatsappUrl, '_blank');
+        onClose();
+    } catch (e) {
+        console.error("Error sending order", e);
+        alert("Hubo un error al preparar el mensaje. Intenta de nuevo.");
+    } finally {
+        setIsGeneratingMessage(false);
     }
-
-    lines.push(`*TOTAL FINAL: $${finalTotal.toLocaleString('es-CL')}*`);
-
-    if (paymentMethod === 'cash') {
-      lines.push("");
-      lines.push(`💵 *PAGO EN EFECTIVO*`);
-      if (cashAmount) {
-        lines.push(`Pago con: $${parseInt(cashAmount).toLocaleString('es-CL')}`);
-        const change = parseInt(cashAmount) - finalTotal;
-        if (change > 0) lines.push(`(Vuelto: $${change.toLocaleString('es-CL')})`);
-      } else {
-        lines.push(`Pago justo.`);
-      }
-    } else if (paymentMethod === 'transfer') {
-      lines.push("");
-      lines.push(`📲 *TRANSFERENCIA*`);
-      if (voucherAnalysis) {
-        // Limpiamos el análisis de saltos de línea extraños para la URL
-        lines.push("--- Datos Voucher ---");
-        lines.push(voucherAnalysis);
-      } else {
-        lines.push(`(Adjuntaré comprobante en el chat)`);
-      }
-    }
-
-    // Unir todo y codificar
-    const messageBody = lines.join("\n");
-    const encodedMessage = encodeURIComponent(messageBody);
-    const whatsappUrl = `https://wa.me/${config.whatsappNumber}?text=${encodedMessage}`;
-
-    window.open(whatsappUrl, '_blank');
-    onClose();
   };
 
   return (
@@ -598,6 +582,7 @@ const CheckoutModal = ({
           <button 
             onClick={handleSendOrder}
             disabled={
+                isGeneratingMessage ||
                 !paymentMethod || 
                 (paymentMethod === 'cash' && (!cashAmount || parseInt(cashAmount) < finalTotal)) ||
                 (isDelivery && !canDeliver) ||
@@ -605,8 +590,16 @@ const CheckoutModal = ({
             }
             className="w-full py-4 bg-gradient-to-r from-neon-purple to-neon-blue hover:from-purple-600 hover:to-blue-600 text-white font-bold rounded-xl shadow-[0_0_30px_rgba(188,19,254,0.4)] disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2"
           >
-            <Phone size={20} className={paymentMethod ? "animate-pulse" : ""} />
-            ENVIAR PEDIDO AHORA
+            {isGeneratingMessage ? (
+              <>
+                <Loader2 size={20} className="animate-spin" /> Redactando mensaje con IA...
+              </>
+            ) : (
+              <>
+                <Phone size={20} className={paymentMethod ? "animate-pulse" : ""} />
+                ENVIAR PEDIDO AHORA
+              </>
+            )}
           </button>
         </div>
       </div>
