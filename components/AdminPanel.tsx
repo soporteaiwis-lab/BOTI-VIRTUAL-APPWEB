@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Category } from '../types';
-import { X, Upload, Save, Image as ImageIcon, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Save, Image as ImageIcon, Sparkles, RefreshCw } from 'lucide-react';
+import { generateImagePrompt } from '../services/geminiService';
 
 interface AdminPanelProps {
   isOpen: boolean;
@@ -21,7 +22,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onSave, editin
 
   const [imagePreview, setImagePreview] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
-  const [uploadError, setUploadError] = useState('');
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   useEffect(() => {
     if (editingProduct) {
@@ -52,23 +53,28 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onSave, editin
     }));
   };
 
-  // Convert image to Base64 to save in DB (works across devices)
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 500000) { // Limit 500kb to prevent DB crash
-        setUploadError('Imagen muy pesada (max 500kb). Intenta una más liviana.');
-        return;
-      }
-      setUploadError('');
+  const handleGenerateAIImage = async () => {
+    if (!formData.name) {
+      alert("Escribe el nombre del producto primero.");
+      return;
+    }
+    
+    setIsGeneratingImage(true);
+    try {
+      // 1. Pedir a Gemini una descripción visual perfecta en inglés
+      const prompt = await generateImagePrompt(formData.name);
       
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setImagePreview(base64String);
-        setFormData(prev => ({ ...prev, imageUrl: base64String }));
-      };
-      reader.readAsDataURL(file);
+      // 2. Usar pollinations.ai con el prompt mejorado (URL segura y pública)
+      const encodedPrompt = encodeURIComponent(prompt);
+      const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=800&nologo=true&seed=${Math.floor(Math.random() * 1000)}`;
+      
+      setFormData(prev => ({ ...prev, imageUrl: aiImageUrl }));
+      setImagePreview(aiImageUrl);
+    } catch (error) {
+      console.error("Error generando imagen", error);
+      alert("Error generando imagen IA.");
+    } finally {
+      setIsGeneratingImage(false);
     }
   };
 
@@ -117,47 +123,47 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onSave, editin
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
           
-          {/* Image Upload Section */}
+          {/* AI Image Generation Section */}
           <div className="flex flex-col items-center justify-center gap-4">
-            <div className="relative w-full h-48 bg-black/50 rounded-2xl border-2 border-dashed border-white/20 flex items-center justify-center overflow-hidden hover:border-neon-purple transition-all group shadow-inner">
+            <div className="relative w-full h-48 bg-black/50 rounded-2xl border border-white/20 flex items-center justify-center overflow-hidden shadow-inner group">
               {imagePreview ? (
-                <>
-                  <img src={imagePreview} alt="Preview" className="w-full h-full object-contain" />
-                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-white font-bold flex items-center gap-2"><Upload size={20}/> Cambiar Foto</span>
-                  </div>
-                </>
+                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
               ) : (
                 <div className="text-center p-4">
-                  <div className="bg-white/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-neon-purple group-hover:scale-110 transition-transform">
-                    <ImageIcon size={32} />
-                  </div>
-                  <span className="text-sm text-gray-300 font-bold block">Sube una foto del producto</span>
-                  <span className="text-xs text-gray-500 mt-1">Formatos: JPG, PNG (Max 500kb)</span>
+                  <ImageIcon size={32} className="text-gray-600 mx-auto mb-2" />
+                  <span className="text-sm text-gray-500">Sin imagen</span>
                 </div>
               )}
-              <input 
-                type="file" 
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="absolute inset-0 opacity-0 cursor-pointer z-20"
-              />
+              {isGeneratingImage && (
+                <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-neon-purple z-10 backdrop-blur-sm">
+                  <RefreshCw className="animate-spin mb-2" size={32} />
+                  <span className="text-xs font-bold animate-pulse">Gemini creando imagen...</span>
+                </div>
+              )}
             </div>
-            {uploadError && (
-              <p className="text-red-400 text-xs flex items-center gap-1 font-bold"><AlertCircle size={12}/> {uploadError}</p>
-            )}
             
-            <div className="w-full text-center border-b border-white/10 pb-4 mb-2">
-                <span className="text-xs text-gray-500 uppercase tracking-widest">O pega una URL de internet</span>
+            <div className="flex w-full gap-2">
+               <button 
+                  type="button"
+                  onClick={handleGenerateAIImage}
+                  disabled={isGeneratingImage}
+                  className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-purple-900/40 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+               >
+                 <Sparkles size={16} className={isGeneratingImage ? "animate-spin" : ""} />
+                 {imagePreview ? 'Regenerar con IA' : 'Generar Imagen con IA'}
+               </button>
+            </div>
+            
+            <div className="w-full text-center">
                 <input 
                     type="text" 
-                    placeholder="https://ejemplo.com/foto.jpg"
+                    placeholder="O pega una URL directa..."
                     value={formData.imageUrl}
                     onChange={(e) => {
                         setFormData(prev => ({...prev, imageUrl: e.target.value}));
                         setImagePreview(e.target.value);
                     }}
-                    className="w-full mt-2 bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-xs text-gray-300 focus:border-neon-blue outline-none text-center"
+                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-xs text-gray-400 focus:border-neon-blue outline-none text-center"
                 />
             </div>
           </div>
@@ -254,7 +260,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onSave, editin
             {isSaving ? (
                 <>Guardando...</>
             ) : (
-                <><Save size={20} /> Guardar en Base de Datos</>
+                <><Save size={20} /> Guardar en Nube</>
             )}
           </button>
         </div>

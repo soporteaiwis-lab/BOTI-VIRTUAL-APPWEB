@@ -17,12 +17,12 @@ Si te preguntan por precios específicos que no sean los de arriba, di que puede
 Mantén las respuestas breves y útiles (máximo 1 párrafo).
 `;
 
+const getApiKey = () => process.env.API_KEY || '';
+
 export const initializeChat = (): Chat => {
   if (chatSession) return chatSession;
-
-  const apiKey = process.env.API_KEY || ''; 
   
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
   
   chatSession = ai.chats.create({
     model: 'gemini-3-flash-preview',
@@ -43,5 +43,22 @@ export const sendMessageToGemini = async (message: string): Promise<string> => {
   } catch (error) {
     console.error("Error talking to Gemini:", error);
     return "Ups, parece que me tomé uno de más. Hubo un error al conectar con el cerebro digital. Intenta más tarde.";
+  }
+};
+
+export const generateImagePrompt = async (productName: string): Promise<string> => {
+  try {
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Describe visualmente el producto de licor o snack llamado "${productName}" para generar una imagen publicitaria de alta calidad. 
+      La descripción debe ser en Inglés (para el generador de imágenes), corta, detallada y atractiva.
+      Estilo: Fotografía de producto profesional, iluminación de estudio, fondo oscuro de bar elegante o luces de neón desenfocadas.
+      Solo devuelve la descripción en inglés, nada más.`,
+    });
+    return response.text || `${productName} alcoholic beverage professional product photography neon background`;
+  } catch (error) {
+    console.error("Error generating prompt:", error);
+    return `${productName} bottle professional photography dark background`;
   }
 };

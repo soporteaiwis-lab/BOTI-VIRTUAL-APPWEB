@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { APP_NAME, WHATSAPP_NUMBER } from './constants';
 import { Product, CartItem, Category } from './types';
 import { loadProductsFromStorage, saveProductToStorage, deleteProductFromStorage, resetDatabase } from './services/storageService';
-import { isCloudActive } from './services/firebase';
+import { isCloudActive, saveFirebaseConfig, clearFirebaseConfig } from './services/firebase';
 import ProductCard from './components/ProductCard';
 import AdminPanel from './components/AdminPanel';
 import GeminiAssistant from './components/GeminiAssistant';
-import { ShoppingCart, Moon, Search, Menu, X, Phone, LogOut, Beer, Plus, Minus, Trash2, Lock, User, ArrowRight, Upload, Image as ImageIcon, CreditCard, RefreshCw, Cloud, CloudOff } from 'lucide-react';
+import { ShoppingCart, Moon, Search, Menu, X, Phone, LogOut, Beer, Plus, Minus, Trash2, Lock, User, ArrowRight, Upload, Image as ImageIcon, CreditCard, RefreshCw, Cloud, CloudOff, Settings, Database } from 'lucide-react';
 
 // --- Login/Welcome Screen Component ---
 const WelcomeScreen = ({ onLogin, onAdminLogin }: { onLogin: (name: string) => void, onAdminLogin: () => void }) => {
@@ -134,12 +134,45 @@ const WelcomeScreen = ({ onLogin, onAdminLogin }: { onLogin: (name: string) => v
   );
 };
 
+// --- Config Modal ---
+const ConfigModal = ({ onClose }: { onClose: () => void }) => {
+  const [configText, setConfigText] = useState('');
+
+  const handleSave = () => {
+    saveFirebaseConfig(configText);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
+      <div className="bg-dark-900 border border-white/10 w-full max-w-lg rounded-3xl p-6 shadow-2xl">
+        <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <Database size={20} className="text-neon-blue" /> Configurar Nube (Firebase)
+        </h3>
+        <p className="text-sm text-gray-400 mb-4">
+          Pega aquí el objeto <code>firebaseConfig</code> de tu consola de Firebase para activar la base de datos mundial.
+        </p>
+        <textarea 
+          value={configText}
+          onChange={(e) => setConfigText(e.target.value)}
+          placeholder='{ "apiKey": "...", "authDomain": "...", ... }'
+          className="w-full h-48 bg-black/50 border border-white/10 rounded-xl p-3 text-xs font-mono text-neon-green focus:border-neon-blue outline-none mb-4"
+        />
+        <div className="flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white">Cerrar</button>
+          <button onClick={handleSave} className="px-4 py-2 bg-neon-blue text-black font-bold rounded-lg hover:bg-cyan-400">Guardar y Conectar</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- Main App Component ---
 const App: React.FC = () => {
   const [user, setUser] = useState<{ name: string, isMaster: boolean } | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showCart, setShowCart] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
@@ -236,9 +269,17 @@ const App: React.FC = () => {
   };
   
   const handleResetDb = () => {
-    if(window.confirm("ADVERTENCIA: Esto borrará todos los cambios y restaurará los productos originales. ¿Continuar?")) {
+    if(window.confirm("ADVERTENCIA: Esto borrará todos los cambios. ¿Continuar?")) {
       resetDatabase();
     }
+  };
+
+  const handleLogout = () => {
+      // Si quiere desconectar la nube, puede limpiar la config
+      if(isCloudActive && window.confirm("¿Quieres desconectarte también de la base de datos (Nube)?")) {
+          clearFirebaseConfig();
+      }
+      setUser(null);
   }
 
   // --- Filtering ---
@@ -325,7 +366,7 @@ const App: React.FC = () => {
             </button>
 
             <button 
-              onClick={() => setUser(null)}
+              onClick={handleLogout}
               className="text-white/40 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg"
               title="Cerrar Sesión"
             >
@@ -364,7 +405,7 @@ const App: React.FC = () => {
               Ver Carro ({cartItemCount})
             </button>
             <button 
-              onClick={() => setUser(null)}
+              onClick={handleLogout}
               className="w-full flex items-center justify-center gap-2 text-red-400 py-3 px-2 border border-red-900/30 rounded-xl mt-2"
             >
               <LogOut size={20} /> Salir
@@ -381,15 +422,13 @@ const App: React.FC = () => {
               <span className="text-neon-purple font-bold text-xs md:text-sm uppercase tracking-wider flex items-center gap-2 drop-shadow-sm">
                 <Lock size={14} /> Modo Master
               </span>
-              {isCloudActive ? (
-                <span className="flex items-center gap-1 text-[10px] text-neon-green bg-green-900/30 px-2 py-1 rounded border border-green-500/30">
-                  <Cloud size={10} /> Conectado a Google Cloud
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 text-[10px] text-orange-400 bg-orange-900/30 px-2 py-1 rounded border border-orange-500/30">
-                  <CloudOff size={10} /> Modo Local (Configura Firebase)
-                </span>
-              )}
+              <button 
+                onClick={() => setShowConfigModal(true)}
+                className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded border transition-colors cursor-pointer hover:bg-white/10 ${isCloudActive ? 'text-neon-green bg-green-900/30 border-green-500/30' : 'text-orange-400 bg-orange-900/30 border-orange-500/30'}`}
+              >
+                {isCloudActive ? <Cloud size={10} /> : <CloudOff size={10} />}
+                {isCloudActive ? 'Conectado a Google Cloud' : 'Modo Local (Click para Conectar)'}
+              </button>
             </div>
             
             <div className="flex gap-2 w-full md:w-auto">
@@ -630,6 +669,11 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Config Modal */}
+      {showConfigModal && (
+        <ConfigModal onClose={() => setShowConfigModal(false)} />
       )}
 
       {/* Admin Panel Modal */}
