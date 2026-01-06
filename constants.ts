@@ -1,14 +1,25 @@
-import { Category, Product } from './types';
+
+import { Category, Product, StoreConfig } from './types';
+
+export const DEFAULT_STORE_CONFIG: StoreConfig = {
+  storeName: "SALVANDO LA NOCHE",
+  whatsappNumber: "56928973426",
+  bankName: "Cuenta RUT Banco Estado",
+  bankAccount: "12345678",
+  bankRut: "11.111.111-1",
+  bankEmail: "pagos@salvandolanoche.cl",
+  adminPassword: "1234"
+};
 
 export const INITIAL_PRODUCTS: Product[] = [
   {
     id: '1',
-    name: 'Promo Pisco Alto del Carmen 35° + Coca Cola 1.5L',
-    description: 'El clásico chileno. Incluye hielo de regalo. Ideal para comenzar la noche.',
+    name: 'Promo Pisco Alto del Carmen 35° + Coca Cola',
+    description: 'La promo sagrada. Incluye hielo de regalo. Ideal para comenzar la noche.',
     price: 9990,
     stock: 50,
     category: Category.PROMOS,
-    imageUrl: 'https://images.unsplash.com/photo-1616422368735-3c06d2c4331d?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1585553616435-2dc0a54e271d?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '2',
@@ -17,16 +28,16 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 15000,
     stock: 100,
     category: Category.CERVEZAS,
-    imageUrl: 'https://images.unsplash.com/photo-1605218427306-635ba2496ed9?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1623352720888-75c404620f3a?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '3',
-    name: 'Cerveza Cristal - Pack 6 Latas',
-    description: 'Lata 350cc. Única, grande y nuestra. Bien helada.',
+    name: 'Cerveza Heineken - Pack 6 Latas',
+    description: 'Lata 350cc. Premium Quality. Siempre fría.',
     price: 12000,
     stock: 80,
     category: Category.CERVEZAS,
-    imageUrl: 'https://images.unsplash.com/photo-1606553258385-224422df522b?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1571506538622-d3861c15c89c?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '4',
@@ -35,25 +46,25 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 12990,
     stock: 20,
     category: Category.LICORES,
-    imageUrl: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1596711904470-36657c91e3e7?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '5',
-    name: 'Cigarros Lucky Strike Mora 20',
-    description: 'Cajetilla dura. Click mentolado sabor mora.',
-    price: 4800,
-    stock: 200,
-    category: Category.CIGARROS,
-    imageUrl: 'https://images.unsplash.com/photo-1527788349257-2c1cb73f2780?q=80&w=800&auto=format&fit=crop'
+    name: 'Jack Daniels Old No. 7',
+    description: 'Tennessee Whiskey. Botella 750cc. Un clásico mundial.',
+    price: 24990,
+    stock: 15,
+    category: Category.LICORES,
+    imageUrl: 'https://images.unsplash.com/photo-1527281400683-1a221290a501?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '6',
-    name: 'Hielo Bolsa 2kg',
+    name: 'Hielo Bolsa 2kg Premium',
     description: 'Cubos grandes macizos, no se derriten rápido.',
     price: 1500,
     stock: 30,
     category: Category.BEBIDAS,
-    imageUrl: 'https://images.unsplash.com/photo-1498028711466-9b76c8106a73?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1504548074900-53eb1c52109e?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '7',
@@ -62,18 +73,15 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 2500,
     stock: 15,
     category: Category.SNACKS,
-    imageUrl: 'https://images.unsplash.com/photo-1621447504864-d8686e12698c?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: '8',
-    name: 'Whisky Johnnie Walker Red Label',
-    description: 'Botella 750cc. El whisky escocés más vendido del mundo.',
-    price: 14990,
+    name: 'Jagermeister 700cc',
+    description: 'Licor de hierbas alemán. Tómalo muy frío (shot).',
+    price: 18990,
     stock: 10,
     category: Category.LICORES,
-    imageUrl: 'https://images.unsplash.com/photo-1569529465841-dfecdab7503b?q=80&w=800&auto=format&fit=crop'
+    imageUrl: 'https://images.unsplash.com/photo-1628104332997-8c3104e1c7f9?q=80&w=800&auto=format&fit=crop'
   }
 ];
-
-export const APP_NAME = "SALVANDO LA NOCHE";
-export const WHATSAPP_NUMBER = "56928973426";

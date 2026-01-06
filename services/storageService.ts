@@ -1,12 +1,16 @@
-import { Product } from '../types';
-import { INITIAL_PRODUCTS } from '../constants';
-import { db, isCloudActive } from './firebase';
-import { collection, getDocs, setDoc, doc, deleteDoc } from "firebase/firestore";
 
-const STORAGE_KEY = 'sln_products_db_v2';
+import { Product, StoreConfig } from '../types';
+import { INITIAL_PRODUCTS, DEFAULT_STORE_CONFIG } from '../constants';
+import { db, isCloudActive } from './firebase';
+import { collection, getDocs, setDoc, doc, deleteDoc, getDoc } from "firebase/firestore";
+
+const STORAGE_KEY = 'sln_products_db_v3';
+const SETTINGS_KEY = 'sln_settings_v1';
 
 // Helper to simulate delay in local mode for realism
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// --- PRODUCTS ---
 
 export const loadProductsFromStorage = async (): Promise<Product[]> => {
   // 1. Intentar cargar desde la Nube (Google Firebase)
@@ -19,11 +23,9 @@ export const loadProductsFromStorage = async (): Promise<Product[]> => {
       });
       
       if (cloudProducts.length > 0) {
-        // Actualizamos caché local para tener respaldo
         localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudProducts));
         return cloudProducts;
       } else {
-        // Si la nube está vacía (primera vez), intentamos subir los iniciales
         try {
           for (const p of INITIAL_PRODUCTS) {
             await setDoc(doc(db, "products", p.id), p);
@@ -31,19 +33,16 @@ export const loadProductsFromStorage = async (): Promise<Product[]> => {
           return INITIAL_PRODUCTS;
         } catch (seedError) {
           console.warn("No se pudo sembrar la base de datos (Error Permisos):", seedError);
-          // Si falla el sembrado, seguimos al flujo local
         }
       }
     } catch (error: any) {
-      console.error("⚠️ Error conectando a la Nube (Firebase) - Probablemente faltan permisos en la consola:", error.message);
-      console.warn("🛟 Activando modo de respaldo: Usando almacenamiento Local.");
-      // No retornamos aquí, dejamos que continúe hacia el código de LocalStorage abajo
+      console.error("⚠️ Error conectando a la Nube (Products):", error.message);
     }
   }
 
-  // 2. Fallback: Modo Local (LocalStorage)
+  // 2. Fallback: Modo Local
   try {
-    await delay(500); // UI feel
+    await delay(500); 
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_PRODUCTS));
@@ -57,17 +56,14 @@ export const loadProductsFromStorage = async (): Promise<Product[]> => {
 };
 
 export const saveProductToStorage = async (product: Product) => {
-  // Guardar en Nube (intento optimista)
   if (isCloudActive && db) {
     try {
       await setDoc(doc(db, "products", product.id), product);
     } catch (error) {
-      console.error("❌ Error guardando en Nube (Permisos):", error);
-      // No lanzamos el error para permitir que se guarde localmente y el usuario no pierda trabajo
+      console.error("❌ Error guardando en Nube:", error);
     }
   }
 
-  // SIEMPRE Guardar en Local como respaldo/cache
   try {
     const currentLocal = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
     const updatedLocal = currentLocal.filter((p: Product) => p.id !== product.id);
@@ -80,16 +76,14 @@ export const saveProductToStorage = async (product: Product) => {
 };
 
 export const deleteProductFromStorage = async (id: string) => {
-  // Borrar de Nube (intento optimista)
   if (isCloudActive && db) {
     try {
       await deleteDoc(doc(db, "products", id));
     } catch (error) {
-       console.error("❌ Error borrando en Nube (Permisos):", error);
+       console.error("❌ Error borrando en Nube:", error);
     }
   }
 
-  // Borrar de Local
   try {
     const currentLocal = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
     const updatedLocal = currentLocal.filter((p: Product) => p.id !== id);
@@ -100,7 +94,44 @@ export const deleteProductFromStorage = async (id: string) => {
   }
 };
 
+// --- SETTINGS ---
+
+export const loadSettingsFromStorage = async (): Promise<StoreConfig> => {
+  if (isCloudActive && db) {
+    try {
+      const docRef = doc(db, "config", "main");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data() as StoreConfig;
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(data));
+        return data;
+      } else {
+        // Init settings if not exist
+        await setDoc(doc(db, "config", "main"), DEFAULT_STORE_CONFIG);
+        return DEFAULT_STORE_CONFIG;
+      }
+    } catch (e) {
+      console.warn("Error loading settings from cloud, falling back to local");
+    }
+  }
+
+  const stored = localStorage.getItem(SETTINGS_KEY);
+  return stored ? JSON.parse(stored) : DEFAULT_STORE_CONFIG;
+};
+
+export const saveSettingsToStorage = async (config: StoreConfig) => {
+  if (isCloudActive && db) {
+    try {
+      await setDoc(doc(db, "config", "main"), config);
+    } catch (e) {
+      console.error("Error saving settings to cloud", e);
+    }
+  }
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(config));
+};
+
 export const resetDatabase = () => {
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(SETTINGS_KEY);
   window.location.reload();
 };

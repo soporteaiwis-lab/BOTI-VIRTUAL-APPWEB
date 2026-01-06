@@ -1,15 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
-import { APP_NAME, WHATSAPP_NUMBER } from './constants';
-import { Product, CartItem, Category } from './types';
-import { loadProductsFromStorage, saveProductToStorage, deleteProductFromStorage, resetDatabase } from './services/storageService';
-import { isCloudActive, saveFirebaseConfig, clearFirebaseConfig } from './services/firebase';
+import { Product, CartItem, Category, StoreConfig } from './types';
+import { DEFAULT_STORE_CONFIG } from './constants';
+import { loadProductsFromStorage, saveProductToStorage, deleteProductFromStorage, resetDatabase, loadSettingsFromStorage, saveSettingsToStorage } from './services/storageService';
+import { isCloudActive, clearFirebaseConfig } from './services/firebase';
 import ProductCard from './components/ProductCard';
 import AdminPanel from './components/AdminPanel';
 import GeminiAssistant from './components/GeminiAssistant';
-import { ShoppingCart, Moon, Search, Menu, X, Phone, LogOut, Beer, Plus, Minus, Trash2, Lock, User, ArrowRight, Upload, Image as ImageIcon, CreditCard, RefreshCw, Cloud, CloudOff, Settings, Database } from 'lucide-react';
+import { ShoppingCart, Moon, Search, Menu, X, Phone, LogOut, Beer, Plus, Minus, Trash2, Lock, User, ArrowRight, Upload, Image as ImageIcon, CreditCard, RefreshCw, Cloud, CloudOff, Database, Settings as SettingsIcon, Save } from 'lucide-react';
 
 // --- Login/Welcome Screen Component ---
-const WelcomeScreen = ({ onLogin, onAdminLogin }: { onLogin: (name: string) => void, onAdminLogin: () => void }) => {
+const WelcomeScreen = ({ onLogin, onAdminLogin, storeName }: { onLogin: (name: string) => void, onAdminLogin: (pass: string) => boolean, storeName: string }) => {
   const [name, setName] = useState('');
   const [showAdminInput, setShowAdminInput] = useState(false);
   const [password, setPassword] = useState('');
@@ -22,8 +23,8 @@ const WelcomeScreen = ({ onLogin, onAdminLogin }: { onLogin: (name: string) => v
 
   const handleAdminEnter = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === '1234') {
-      onAdminLogin();
+    if (onAdminLogin(password)) {
+      // Success is handled by callback return
     } else {
       setError('Clave incorrecta');
       setTimeout(() => setError(''), 2000);
@@ -32,7 +33,6 @@ const WelcomeScreen = ({ onLogin, onAdminLogin }: { onLogin: (name: string) => v
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
-      {/* Dynamic Background */}
       <div className="absolute inset-0 z-0">
          <img 
           src="https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2670&auto=format&fit=crop" 
@@ -40,7 +40,6 @@ const WelcomeScreen = ({ onLogin, onAdminLogin }: { onLogin: (name: string) => v
           alt="Nightclub background"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-purple-900/30"></div>
-        {/* Animated Orbs */}
         <div className="absolute top-10 left-10 w-64 h-64 bg-neon-purple rounded-full mix-blend-screen filter blur-[100px] opacity-30 animate-pulse"></div>
         <div className="absolute bottom-10 right-10 w-64 h-64 bg-neon-blue rounded-full mix-blend-screen filter blur-[100px] opacity-30 animate-pulse" style={{animationDelay: '1s'}}></div>
       </div>
@@ -51,9 +50,8 @@ const WelcomeScreen = ({ onLogin, onAdminLogin }: { onLogin: (name: string) => v
             <Moon className="w-12 h-12 text-neon-purple fill-current drop-shadow-lg" />
             <div className="absolute inset-0 rounded-full border border-neon-purple/50 animate-ping opacity-20"></div>
           </div>
-          <h1 className="text-4xl md:text-5xl font-black italic text-white mb-2 tracking-tighter drop-shadow-2xl">
-            SALVANDO <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-neon-green via-emerald-400 to-cyan-400">LA NOCHE</span>
+          <h1 className="text-3xl md:text-5xl font-black italic text-white mb-2 tracking-tighter drop-shadow-2xl uppercase">
+            {storeName}
           </h1>
           <p className="text-gray-300 text-xs uppercase tracking-[0.3em] font-bold mt-2">
             Botillería Virtual 24/7
@@ -134,32 +132,70 @@ const WelcomeScreen = ({ onLogin, onAdminLogin }: { onLogin: (name: string) => v
   );
 };
 
-// --- Config Modal ---
-const ConfigModal = ({ onClose }: { onClose: () => void }) => {
-  const [configText, setConfigText] = useState('');
+// --- Settings Modal ---
+const SettingsModal = ({ config, onClose, onSave }: { config: StoreConfig, onClose: () => void, onSave: (newConfig: StoreConfig) => void }) => {
+  const [formData, setFormData] = useState<StoreConfig>(config);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSave = () => {
-    saveFirebaseConfig(configText);
+    onSave(formData);
+    onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
-      <div className="bg-dark-900 border border-white/10 w-full max-w-lg rounded-3xl p-6 shadow-2xl">
-        <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          <Database size={20} className="text-neon-blue" /> Configurar Nube (Firebase)
-        </h3>
-        <p className="text-sm text-gray-400 mb-4">
-          Pega aquí el objeto <code>firebaseConfig</code> de tu consola de Firebase para activar la base de datos mundial.
-        </p>
-        <textarea 
-          value={configText}
-          onChange={(e) => setConfigText(e.target.value)}
-          placeholder='{ "apiKey": "...", "authDomain": "...", ... }'
-          className="w-full h-48 bg-black/50 border border-white/10 rounded-xl p-3 text-xs font-mono text-neon-green focus:border-neon-blue outline-none mb-4"
-        />
-        <div className="flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white">Cerrar</button>
-          <button onClick={handleSave} className="px-4 py-2 bg-neon-blue text-black font-bold rounded-lg hover:bg-cyan-400">Guardar y Conectar</button>
+      <div className="bg-dark-900 border border-white/10 w-full max-w-lg rounded-3xl p-6 shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
+        <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            <SettingsIcon size={24} className="text-neon-blue" /> Configuración de Tienda
+          </h3>
+          <button onClick={onClose}><X size={20} className="text-gray-400 hover:text-white" /></button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-neon-green uppercase">Nombre del Negocio</label>
+            <input type="text" name="storeName" value={formData.storeName} onChange={handleChange} className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white mt-1" />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-neon-green uppercase">WhatsApp de Pedidos (569...)</label>
+            <input type="text" name="whatsappNumber" value={formData.whatsappNumber} onChange={handleChange} className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white mt-1" />
+          </div>
+          
+          <div className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-3">
+             <h4 className="text-sm font-bold text-neon-purple uppercase mb-2 flex items-center gap-2"><CreditCard size={14}/> Datos Bancarios</h4>
+             <div>
+                <label className="text-xs text-gray-400">Nombre Banco</label>
+                <input type="text" name="bankName" value={formData.bankName} onChange={handleChange} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm" />
+             </div>
+             <div>
+                <label className="text-xs text-gray-400">Número de Cuenta</label>
+                <input type="text" name="bankAccount" value={formData.bankAccount} onChange={handleChange} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm" />
+             </div>
+             <div>
+                <label className="text-xs text-gray-400">RUT</label>
+                <input type="text" name="bankRut" value={formData.bankRut} onChange={handleChange} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm" />
+             </div>
+             <div>
+                <label className="text-xs text-gray-400">Email Transferencias</label>
+                <input type="text" name="bankEmail" value={formData.bankEmail} onChange={handleChange} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm" />
+             </div>
+          </div>
+          
+          <div>
+            <label className="text-xs font-bold text-red-400 uppercase">Clave de Acceso (Master)</label>
+            <input type="text" name="adminPassword" value={formData.adminPassword} onChange={handleChange} className="w-full bg-black/40 border border-red-900/30 rounded-xl p-3 text-white mt-1 focus:border-red-500" />
+          </div>
+        </div>
+
+        <div className="mt-8 flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white">Cancelar</button>
+          <button onClick={handleSave} className="px-6 py-2 bg-neon-blue text-black font-bold rounded-xl hover:bg-cyan-400 flex items-center gap-2">
+            <Save size={18} /> Guardar Cambios
+          </button>
         </div>
       </div>
     </div>
@@ -169,10 +205,11 @@ const ConfigModal = ({ onClose }: { onClose: () => void }) => {
 // --- Main App Component ---
 const App: React.FC = () => {
   const [user, setUser] = useState<{ name: string, isMaster: boolean } | null>(null);
+  const [storeConfig, setStoreConfig] = useState<StoreConfig>(DEFAULT_STORE_CONFIG);
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showCart, setShowCart] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
@@ -185,16 +222,25 @@ const App: React.FC = () => {
   const [voucherPreview, setVoucherPreview] = useState<string | null>(null);
 
   // --- Persistence Logic ---
-  const fetchProducts = async () => {
+  const initApp = async () => {
     setIsLoading(true);
-    const loaded = await loadProductsFromStorage();
-    setProducts(loaded);
+    const [loadedProducts, loadedConfig] = await Promise.all([
+      loadProductsFromStorage(),
+      loadSettingsFromStorage()
+    ]);
+    setProducts(loadedProducts);
+    setStoreConfig(loadedConfig);
     setIsLoading(false);
   };
 
   useEffect(() => {
-    fetchProducts();
+    initApp();
   }, []);
+
+  const handleUpdateConfig = async (newConfig: StoreConfig) => {
+    setStoreConfig(newConfig);
+    await saveSettingsToStorage(newConfig);
+  };
 
   // --- Cart Logic ---
   const addToCart = (product: Product) => {
@@ -239,27 +285,31 @@ const App: React.FC = () => {
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleCheckout = () => {
-    let message = `Hola *${APP_NAME}*, soy ${user?.name}. Quiero pedir:%0A` + 
+    let message = `Hola *${storeConfig.storeName}*, soy ${user?.name}. Quiero pedir:%0A` + 
       cart.map(item => `- ${item.quantity}x ${item.name} ($${item.price.toLocaleString('es-CL')})`).join('%0A') +
       `%0A%0A*Total: $${cartTotal.toLocaleString('es-CL')}*`;
     
     if (voucher) {
-      message += `%0A%0A📎 *Comprobante de Transferencia:*%0AAdjunto imagen a continuación.`;
+      // Instruction for user because we can't auto-attach
+      message += `%0A%0A[ ADJUNTO COMPROBANTE EN LA FOTO ]`;
+      alert("⚠️ WhatsApp Web no permite adjuntar fotos automáticamente.\n\nEl chat se abrirá ahora. POR FAVOR, PEGA (Ctrl+V) o ADJUNTA la foto de tu comprobante manualmente en el chat.");
     }
     
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, '_blank');
+    window.open(`https://wa.me/${storeConfig.whatsappNumber}?text=${message}`, '_blank');
   };
 
   // --- Admin Logic ---
   const handleSaveProduct = async (product: Product) => {
     await saveProductToStorage(product);
-    await fetchProducts(); // Refresh list
+    const updated = await loadProductsFromStorage();
+    setProducts(updated);
   };
 
   const handleDeleteProduct = async (id: string) => {
     if (window.confirm('¿Estás seguro de eliminar este producto de la base de datos?')) {
       await deleteProductFromStorage(id);
-      await fetchProducts(); // Refresh list
+      const updated = await loadProductsFromStorage();
+      setProducts(updated);
     }
   };
 
@@ -275,12 +325,20 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
-      // Si quiere desconectar la nube, puede limpiar la config
       if(isCloudActive && window.confirm("¿Quieres desconectarte también de la base de datos (Nube)?")) {
           clearFirebaseConfig();
       }
       setUser(null);
   }
+
+  const handleAdminLoginAttempt = (pass: string) => {
+    const correctPass = storeConfig.adminPassword || "1234";
+    if (pass === correctPass) {
+      setUser({ name: 'Master', isMaster: true });
+      return true;
+    }
+    return false;
+  };
 
   // --- Filtering ---
   const filteredProducts = products.filter(p => {
@@ -296,7 +354,8 @@ const App: React.FC = () => {
     return (
       <WelcomeScreen 
         onLogin={(name) => setUser({ name, isMaster: false })}
-        onAdminLogin={() => setUser({ name: 'Master', isMaster: true })}
+        onAdminLogin={handleAdminLoginAttempt}
+        storeName={storeConfig.storeName}
       />
     );
   }
@@ -305,7 +364,7 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center text-neon-green gap-4">
         <div className="w-16 h-16 border-4 border-neon-green border-t-transparent rounded-full animate-spin"></div>
-        <p className="font-bold tracking-widest animate-pulse">CARGANDO BASE DE DATOS...</p>
+        <p className="font-bold tracking-widest animate-pulse">CARGANDO FIESTA...</p>
       </div>
     );
   }
@@ -316,7 +375,6 @@ const App: React.FC = () => {
       {/* Global Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-        {/* Dynamic Gradients */}
         <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-purple-900/30 rounded-full blur-[120px] animate-pulse"></div>
         <div className="absolute bottom-[-20%] left-[-10%] w-[800px] h-[800px] bg-blue-900/30 rounded-full blur-[120px] animate-pulse" style={{animationDelay:'2s'}}></div>
       </div>
@@ -329,8 +387,8 @@ const App: React.FC = () => {
               <Moon size={24} className="fill-current" />
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-xl md:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400 leading-none tracking-tight">
-                {APP_NAME}
+              <h1 className="text-xl md:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400 leading-none tracking-tight uppercase">
+                {storeConfig.storeName}
               </h1>
               <span className="text-[10px] text-neon-green font-bold tracking-[0.3em] uppercase block mt-0.5 text-shadow-glow">Fonocopete 24/7</span>
             </div>
@@ -423,15 +481,21 @@ const App: React.FC = () => {
                 <Lock size={14} /> Modo Master
               </span>
               <button 
-                onClick={() => setShowConfigModal(true)}
-                className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded border transition-colors cursor-pointer hover:bg-white/10 ${isCloudActive ? 'text-neon-green bg-green-900/30 border-green-500/30' : 'text-orange-400 bg-orange-900/30 border-orange-500/30'}`}
+                onClick={() => {}} 
+                className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded border transition-colors cursor-default ${isCloudActive ? 'text-neon-green bg-green-900/30 border-green-500/30' : 'text-orange-400 bg-orange-900/30 border-orange-500/30'}`}
               >
                 {isCloudActive ? <Cloud size={10} /> : <CloudOff size={10} />}
-                {isCloudActive ? 'Conectado a Google Cloud' : 'Modo Local (Click para Conectar)'}
+                {isCloudActive ? 'Nube Activada' : 'Modo Local'}
               </button>
             </div>
             
-            <div className="flex gap-2 w-full md:w-auto">
+            <div className="flex gap-2 w-full md:w-auto overflow-x-auto no-scrollbar">
+              <button
+                onClick={() => setShowSettingsModal(true)}
+                className="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold py-2 px-3 rounded-lg flex items-center gap-2 text-xs transition-all whitespace-nowrap"
+              >
+                <SettingsIcon size={14} /> Config Tienda
+              </button>
               <button
                 onClick={handleResetDb}
                 className="bg-red-900/30 hover:bg-red-900/50 text-red-300 border border-red-500/30 font-bold py-2 px-3 rounded-lg flex items-center gap-2 text-xs transition-all whitespace-nowrap"
@@ -471,7 +535,7 @@ const App: React.FC = () => {
             </p>
           </div>
           <div className="mt-6 flex items-center gap-2 text-sm text-neon-green font-mono border border-neon-green/30 bg-black/60 px-6 py-2 rounded-full shadow-[0_0_20px_rgba(57,255,20,0.2)] hover:shadow-[0_0_30px_rgba(57,255,20,0.4)] transition-shadow cursor-pointer">
-            <Phone size={16} /> WhatsApp: {WHATSAPP_NUMBER}
+            <Phone size={16} /> WhatsApp: {storeConfig.whatsappNumber}
           </div>
         </div>
       </header>
@@ -606,10 +670,10 @@ const App: React.FC = () => {
                 </h3>
                 
                 <div className="bg-white/5 p-4 rounded-xl border border-white/10 mb-4 text-xs text-gray-300 space-y-2 font-mono">
-                    <p className="flex justify-between border-b border-white/5 pb-1"><span>Banco:</span> <span className="text-white font-bold">Estado</span></p>
-                    <p className="flex justify-between border-b border-white/5 pb-1"><span>Cuenta RUT:</span> <span className="text-white font-bold">12.345.678-9</span></p>
-                    <p className="flex justify-between border-b border-white/5 pb-1"><span>Nombre:</span> <span className="text-white font-bold">Salvando La Noche SpA</span></p>
-                    <p className="flex justify-between"><span>Email:</span> <span className="text-white font-bold">pagos@salvando.cl</span></p>
+                    <p className="flex justify-between border-b border-white/5 pb-1"><span>Banco:</span> <span className="text-white font-bold">{storeConfig.bankName}</span></p>
+                    <p className="flex justify-between border-b border-white/5 pb-1"><span>Cuenta:</span> <span className="text-white font-bold">{storeConfig.bankAccount}</span></p>
+                    <p className="flex justify-between border-b border-white/5 pb-1"><span>RUT:</span> <span className="text-white font-bold">{storeConfig.bankRut}</span></p>
+                    <p className="flex justify-between"><span>Email:</span> <span className="text-white font-bold">{storeConfig.bankEmail}</span></p>
                 </div>
 
                 {!voucherPreview ? (
@@ -661,19 +725,23 @@ const App: React.FC = () => {
                     : 'bg-white/10 text-gray-500 cursor-not-allowed border border-white/5'}`}
               >
                 <Phone size={22} className={cart.length > 0 ? "animate-pulse" : ""} />
-                {voucher ? 'ENVIAR PEDIDO' : 'PEDIR POR WHATSAPP'}
+                {voucher ? 'CONFIRMAR Y ENVIAR' : 'PEDIR POR WHATSAPP'}
               </button>
               <p className="text-center text-[10px] uppercase tracking-widest text-gray-500 mt-4">
-                 {voucher ? 'Se abrirá WhatsApp con los detalles.' : 'Coordinaremos el pago en el chat.'}
+                 {voucher ? 'No olvides pegar la foto en WhatsApp.' : 'Coordinaremos el pago en el chat.'}
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Config Modal */}
-      {showConfigModal && (
-        <ConfigModal onClose={() => setShowConfigModal(false)} />
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <SettingsModal 
+          config={storeConfig} 
+          onClose={() => setShowSettingsModal(false)} 
+          onSave={handleUpdateConfig} 
+        />
       )}
 
       {/* Admin Panel Modal */}

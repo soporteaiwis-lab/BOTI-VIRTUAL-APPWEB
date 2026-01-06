@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { Product, Category } from '../types';
-import { X, Save, Image as ImageIcon, Sparkles, RefreshCw } from 'lucide-react';
+import { X, Save, Image as ImageIcon, Sparkles, RefreshCw, Upload, Smartphone } from 'lucide-react';
 import { generateImagePrompt } from '../services/geminiService';
 
 interface AdminPanelProps {
@@ -23,6 +24,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onSave, editin
   const [imagePreview, setImagePreview] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (editingProduct) {
@@ -61,10 +63,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onSave, editin
     
     setIsGeneratingImage(true);
     try {
-      // 1. Pedir a Gemini una descripción visual perfecta en inglés
       const prompt = await generateImagePrompt(formData.name);
-      
-      // 2. Usar pollinations.ai con el prompt mejorado (URL segura y pública)
       const encodedPrompt = encodeURIComponent(prompt);
       const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=800&nologo=true&seed=${Math.floor(Math.random() * 1000)}`;
       
@@ -75,6 +74,24 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onSave, editin
       alert("Error generando imagen IA.");
     } finally {
       setIsGeneratingImage(false);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit for base64 safety
+        alert("La imagen es muy grande. Intenta con una más pequeña (Max 2MB).");
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setFormData(prev => ({ ...prev, imageUrl: base64String }));
+        setImagePreview(base64String);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -123,7 +140,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onSave, editin
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
           
-          {/* AI Image Generation Section */}
+          {/* Image Section */}
           <div className="flex flex-col items-center justify-center gap-4">
             <div className="relative w-full h-48 bg-black/50 rounded-2xl border border-white/20 flex items-center justify-center overflow-hidden shadow-inner group">
               {imagePreview ? (
@@ -147,10 +164,26 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onSave, editin
                   type="button"
                   onClick={handleGenerateAIImage}
                   disabled={isGeneratingImage}
-                  className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-purple-900/40 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+                  className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white py-3 rounded-xl font-bold text-xs md:text-sm shadow-lg shadow-purple-900/40 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
                >
                  <Sparkles size={16} className={isGeneratingImage ? "animate-spin" : ""} />
-                 {imagePreview ? 'Regenerar con IA' : 'Generar Imagen con IA'}
+                 Generar con IA
+               </button>
+               
+               <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={handleFileUpload}
+               />
+               <button 
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold text-xs md:text-sm border border-white/10 flex items-center justify-center gap-2 transition-all"
+               >
+                 <Smartphone size={16} />
+                 Subir Foto
                </button>
             </div>
             
@@ -260,7 +293,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onSave, editin
             {isSaving ? (
                 <>Guardando...</>
             ) : (
-                <><Save size={20} /> Guardar en Nube</>
+                <><Save size={20} /> Guardar Cambios</>
             )}
           </button>
         </div>

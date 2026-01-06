@@ -1,3 +1,4 @@
+
 export enum Category {
   LICORES = 'Licores',
   CERVEZAS = 'Cervezas',
@@ -25,4 +26,14 @@ export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
   timestamp: number;
+}
+
+export interface StoreConfig {
+  storeName: string;
+  whatsappNumber: string;
+  bankName: string;
+  bankAccount: string;
+  bankRut: string;
+  bankEmail: string;
+  adminPassword?: string;
 }
