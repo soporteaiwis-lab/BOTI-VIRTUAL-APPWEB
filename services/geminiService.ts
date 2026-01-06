@@ -154,36 +154,37 @@ export const prepareOrderMessage = async (orderDetails: any): Promise<string> =>
   try {
     const ai = new GoogleGenAI({ apiKey: getApiKey() });
     
-    // Simpler prompt to avoid markdown issues with phone numbers
+    // Prompt simplificado: Sin teléfono de cliente, solo lo esencial.
     const prompt = `
     Act as a sales assistant for "Salvando La Noche".
-    Take the provided order data and create a SIMPLE, CLEAN WhatsApp message in Spanish.
+    Create a VERY SIMPLE, CLEAN WhatsApp message in Spanish.
     
     DATA:
     Store: ${orderDetails.storeName}
     Client Name: ${orderDetails.customerName}
-    Client Phone: ${orderDetails.customerPhone}
     Items: ${orderDetails.items.join(", ")}
     Subtotal: ${orderDetails.subtotal}
     Is Delivery: ${orderDetails.isDelivery}
-    Address: ${orderDetails.address} (Dist: ${orderDetails.distance})
-    Delivery Fee: ${orderDetails.deliveryFee}
+    Address: ${orderDetails.address}
     Total: ${orderDetails.total}
     Payment Method: ${orderDetails.paymentMethod}
-    Cash Given: ${orderDetails.cashGiven}
-    Voucher Info: ${orderDetails.voucherAnalysis || "N/A"}
+    Voucher Text Analysis: ${orderDetails.voucherAnalysis || "N/A"}
 
-    OUTPUT FORMAT RULES:
-    1. First line: "Hola *${orderDetails.storeName}*! Nuevo Pedido 🛒"
-    2. Second line: "Cliente: ${orderDetails.customerName} (Tel: ${orderDetails.customerPhone})"
-    3. Third line: Empty
-    4. List items (one per line with - ).
-    5. Show Total.
-    6. Show Delivery details clearly.
-    7. Show Payment details.
-    8. DO NOT use bold (*) on the phone number to avoid breaking links. 
-    9. Use emojis.
-    10. Return ONLY the text string.
+    OUTPUT FORMAT:
+    Hola *${orderDetails.storeName}*! Nuevo Pedido 🛒
+    Cliente: ${orderDetails.customerName}
+    
+    [List of Items]
+    
+    Total: $${orderDetails.total}
+    Entrega: ${orderDetails.isDelivery ? "Delivery 🛵 a " + orderDetails.address : "Retiro en Local 🏪"}
+    Pago: ${orderDetails.paymentMethod}
+    
+    ${orderDetails.voucherAnalysis ? "--- DATOS VOUCHER ---\n" + orderDetails.voucherAnalysis : ""}
+
+    DO NOT include the client's phone number.
+    DO NOT use markdown on numbers.
+    Return ONLY the text string.
     `;
 
     const response = await ai.models.generateContent({
@@ -194,7 +195,7 @@ export const prepareOrderMessage = async (orderDetails: any): Promise<string> =>
     return response.text || "Error generando mensaje.";
   } catch (error) {
     console.error("Error preparing message:", error);
-    // Fallback manual seguro
-    return `Hola ${orderDetails.storeName}, soy ${orderDetails.customerName}. Mi pedido total es $${orderDetails.total}.`;
+    // Fallback manual seguro y simple
+    return `Hola ${orderDetails.storeName}, soy ${orderDetails.customerName}. Mi pedido es: ${orderDetails.items.join(", ")}. Total: $${orderDetails.total}. ${orderDetails.voucherAnalysis ? "Datos Pago: " + orderDetails.voucherAnalysis : ""}`;
   }
 };

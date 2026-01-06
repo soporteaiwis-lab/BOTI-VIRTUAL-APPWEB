@@ -347,6 +347,9 @@ const CheckoutModal = ({
     const orderData = {
         storeName: config.storeName,
         customerName: user.name,
+        // Removed customerPhone from this object passed to AI if we want to be safe, 
+        // but passing it is fine if the prompt doesn't use it.
+        // However, I will pass it but the PROMPT is what ignores it.
         customerPhone: user.phone,
         items: cart.map(i => `${i.quantity}x ${i.name} ($${i.price})`),
         subtotal: total,
@@ -361,16 +364,21 @@ const CheckoutModal = ({
     };
 
     try {
-        // 1. Usar IA para redactar un mensaje limpio (texto plano, sin formateo complejo de teléfono)
+        // 1. Usar IA para redactar un mensaje limpio (SIN TELÉFONO DE CLIENTE)
         const formattedMessage = await prepareOrderMessage(orderData);
         
-        // 2. Limpiar el número de LA TIENDA para el link
+        // 2. Limpiar el número de LA TIENDA para el link (CRÍTICO)
         let cleanStoreNumber = config.whatsappNumber.replace(/\D/g, '');
         
-        // Auto-fix para Chile si el dueño puso solo 8 digitos (ej: 912345678 -> 56912345678)
+        // Auto-fix para Chile
         if (cleanStoreNumber.length === 8) {
+           // Usuario puso "87654321" -> agregamos "569"
            cleanStoreNumber = '569' + cleanStoreNumber;
         } else if (cleanStoreNumber.length === 9 && cleanStoreNumber.startsWith('9')) {
+           // Usuario puso "987654321" -> agregamos "56"
+           cleanStoreNumber = '56' + cleanStoreNumber;
+        } else if (cleanStoreNumber.length >= 10 && !cleanStoreNumber.startsWith('56')) {
+           // Caso raro, asumimos que falta el código país
            cleanStoreNumber = '56' + cleanStoreNumber;
         }
         
